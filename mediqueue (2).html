@@ -1,0 +1,2545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediQueue — Smart Hospital Queue Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B1512;
+  --panel:#12211C;
+  --ink:#EAF3F0;
+  --ink-soft:#8FA6A0;
+  --primary:#3FE0C8;
+  --primary-light:#6BEDD9;
+  --primary-dim:#16332C;
+  --accent:#5CB4DD;
+  --accent-dim:#122B36;
+  --alert:#F0637A;
+  --alert-dim:#3A1620;
+  --success:#4FCB8A;
+  --success-dim:#123626;
+  --warn:#F0C05C;
+  --warn-dim:#3A2C0F;
+  --border:#20342E;
+  --board:#050D0B;
+  --board-led:#3FE0C8;
+  --radius:14px;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-body);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(63,224,200,.05), transparent 35%),
+    radial-gradient(circle at 90% 15%, rgba(92,180,221,.05), transparent 40%),
+    var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit; cursor:pointer;}
+input,select{font-family:inherit;}
+::selection{background:var(--primary-light); color:#fff;}
+@media (prefers-reduced-motion:reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+
+/* ---------- App shell ---------- */
+#app{min-height:100vh; display:flex;}
+.hidden{display:none !important;}
+
+/* ---------- Auth screen ---------- */
+#auth-screen{
+  min-height:100vh; width:100%;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(63,224,200,.10), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(46,134,171,.12), transparent 45%),
+    var(--primary);
+  padding:24px;
+}
+.auth-card{
+  width:100%; max-width:920px;
+  background:var(--panel);
+  border-radius:20px;
+  display:grid; grid-template-columns:1.05fr 1fr;
+  overflow:hidden;
+  box-shadow:0 30px 70px rgba(6,30,27,.35);
+}
+.auth-side{
+  background:linear-gradient(160deg,var(--primary) 0%,#083A36 100%);
+  color:#fff; padding:44px 38px; display:flex; flex-direction:column; justify-content:space-between;
+  position:relative;
+}
+.auth-side::after{
+  content:""; position:absolute; inset:0;
+  background-image:radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size:16px 16px; opacity:.5;
+}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:22px; position:relative; z-index:1;}
+.brand .dot{width:10px; height:10px; border-radius:50%; background:var(--board-led); box-shadow:0 0 10px var(--board-led);}
+.auth-side h2{font-family:var(--font-display); font-size:28px; line-height:1.25; margin-top:36px; position:relative; z-index:1;}
+.auth-side p{color:#BFEAE3; margin-top:14px; font-size:14.5px; line-height:1.6; position:relative; z-index:1;}
+.auth-stat-row{display:flex; gap:22px; margin-top:34px; position:relative; z-index:1;}
+.auth-stat b{display:block; font-family:var(--font-mono); font-size:22px;}
+.auth-stat span{font-size:11.5px; color:#9FD9CF; text-transform:uppercase; letter-spacing:.06em;}
+
+.auth-form-wrap{padding:44px 40px; display:flex; flex-direction:column;}
+.auth-tabs{display:flex; background:var(--bg); border-radius:10px; padding:4px; margin-bottom:26px;}
+.auth-tab{flex:1; text-align:center; padding:9px 0; border:none; background:transparent; border-radius:8px; font-weight:600; font-size:14px; color:var(--ink-soft);}
+.auth-tab.active{background:var(--panel); color:var(--primary); box-shadow:0 2px 6px rgba(11,79,74,.14);}
+.field{margin-bottom:14px; min-width:0;}
+.field label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; text-transform:uppercase; letter-spacing:.03em;}
+.field input, .field select{
+  width:100%; padding:11px 13px; border-radius:9px; border:1.5px solid var(--border);
+  font-size:14.5px; color:var(--ink); background:#0B1A16;
+}
+.field input:focus, .field select:focus{outline:none; border-color:var(--primary-light);}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border:none; border-radius:10px; font-weight:600; font-size:14.5px;
+  padding:12px 20px; transition:transform .12s ease, box-shadow .12s ease;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--primary); color:#06231D; box-shadow:0 8px 18px rgba(63,224,200,.18);}
+.btn-primary:hover{background:var(--primary-light);}
+.btn-accent{background:var(--accent); color:#06231D; box-shadow:0 8px 18px rgba(92,180,221,.18);}
+.btn-outline{background:transparent; color:var(--primary); border:1.5px solid var(--primary-dim);}
+.btn-outline:hover{background:var(--primary-dim);}
+.btn-block{width:100%;}
+.btn-sm{padding:8px 14px; font-size:13px; border-radius:8px;}
+.auth-note{font-size:12.5px; color:var(--ink-soft); margin-top:14px; text-align:center;}
+.auth-error{background:var(--alert-dim); color:var(--alert); font-size:13px; padding:9px 12px; border-radius:8px; margin-bottom:12px; display:none;}
+.auth-side-list{list-style:none; margin-top:22px; position:relative; z-index:1;}
+.auth-side-list li{font-size:13.5px; color:#D6F0EA; margin-top:8px; display:flex; gap:8px; align-items:flex-start;}
+.auth-side-list li::before{content:"✓"; color:var(--board-led); font-weight:700;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:236px; background:linear-gradient(180deg, #13251F 0%, var(--panel) 60%); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; padding:22px 16px; position:sticky; top:0; height:100vh;
+  flex-shrink:0; box-shadow:4px 0 24px rgba(0,0,0,.25);
+}
+.sidebar .brand{color:var(--primary); padding:0 8px 22px 8px; border-bottom:1px solid var(--border); margin-bottom:14px;}
+.sidebar .brand .dot{background:var(--success); box-shadow:0 0 8px var(--success);}
+.nav-group-label{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:#5E7A73; padding:14px 12px 6px;}
+.nav-item{
+  display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:9px;
+  color:var(--ink-soft); font-size:14px; font-weight:500; border:none; background:none; width:100%; text-align:left;
+  position:relative; transition:background .12s ease, color .12s ease;
+}
+.nav-item .ic{width:18px; text-align:center; font-size:15px;}
+.nav-item:hover{background:rgba(63,224,200,.06); color:var(--ink);}
+.nav-item.active{background:var(--primary-dim); color:var(--primary); font-weight:600; box-shadow:inset 0 0 0 1px rgba(63,224,200,.18);}
+.nav-item.active::before{content:""; position:absolute; left:-16px; top:8px; bottom:8px; width:3px; background:var(--primary); border-radius:0 4px 4px 0; box-shadow:0 0 8px var(--primary);}
+.sidebar-footer{margin-top:auto; padding-top:14px; border-top:1px solid var(--border);}
+.user-pill{display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px; background:var(--bg); border:1px solid var(--border);}
+.user-avatar{width:34px; height:34px; border-radius:50%; background:var(--primary); color:#06231D; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; font-family:var(--font-display); box-shadow:0 0 12px rgba(63,224,200,.4);}
+.user-pill .who{flex:1; overflow:hidden;}
+.user-pill .who b{display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.user-pill .who span{font-size:11px; color:var(--ink-soft);}
+.logout-btn{background:none; border:none; color:var(--ink-soft); font-size:16px;}
+
+/* ---------- Main ---------- */
+.main{flex:1; min-width:0; display:flex; flex-direction:column;}
+.topbar{
+  height:64px; background:rgba(18,33,28,.85); backdrop-filter:blur(10px); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; padding:0 28px; position:sticky; top:0; z-index:5;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+}
+.topbar h1{font-family:var(--font-display); font-size:19px;}
+.topbar .sub{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.live-badge{display:flex; align-items:center; gap:7px; background:var(--success-dim); color:var(--success); padding:6px 12px; border-radius:20px; font-size:12.5px; font-weight:600; border:1px solid rgba(79,203,138,.25);}
+.notif-panel{
+  display:none; position:absolute; top:46px; right:0; width:320px; max-height:420px; overflow-y:auto;
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.4); z-index:50;
+}
+.notif-panel.open{display:block; animation:slideDown .2s ease;}
+.notif-head{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel);}
+.notif-head b{font-size:13px;}
+.notif-head-actions{display:flex; gap:10px;}
+.notif-head-actions button{background:none; border:none; color:var(--accent); font-size:11.5px; font-weight:600; cursor:pointer;}
+.notif-item{display:flex; gap:10px; padding:12px 14px; border-bottom:1px solid var(--border); position:relative; transition:background .12s;}
+.notif-item:hover{background:var(--bg);}
+.notif-item:last-child{border-bottom:none;}
+.notif-item.unread{background:rgba(63,224,200,.05);}
+.notif-item.unread::before{content:""; position:absolute; left:5px; top:18px; width:6px; height:6px; border-radius:50%; background:var(--primary); box-shadow:0 0 6px var(--primary);}
+.notif-item .notif-body{flex:1; padding-left:8px;}
+.notif-dismiss{background:none; border:none; color:var(--ink-soft); font-size:14px; cursor:pointer; padding:0 4px; align-self:flex-start;}
+.notif-dismiss:hover{color:var(--alert);}
+.notif-ic{font-size:16px;}
+.live-dot{width:7px; height:7px; border-radius:50%; background:var(--success); animation:pulse 1.6s infinite; box-shadow:0 0 6px var(--success);}
+@keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+.page{padding:28px; max-width:1180px; animation:pageIn .35s ease;}
+@keyframes pageIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+@keyframes fadeInUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);}}
+@keyframes slideDown{from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:translateY(0);}}
+@keyframes softPulse{0%,100%{box-shadow:0 0 0 0 rgba(63,224,200,.35);} 50%{box-shadow:0 0 0 8px rgba(63,224,200,0);}}
+.card{animation:fadeInUp .4s ease backwards;}
+.card:nth-of-type(1){animation-delay:.02s;} .card:nth-of-type(2){animation-delay:.06s;}
+.card:nth-of-type(3){animation-delay:.10s;} .card:nth-of-type(4){animation-delay:.14s;}
+.card:nth-of-type(5){animation-delay:.18s;} .card:nth-of-type(n+6){animation-delay:.20s;}
+.hospital-card:hover, .dept-card:hover, .doc-row:hover{transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,.25);}
+.stat-tile{transition:transform .2s ease, box-shadow .2s ease;}
+.btn{transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;}
+.btn:hover{filter:brightness(1.08); transform:translateY(-1px);}
+.led-number{animation:softPulse 2.4s infinite;}
+
+/* ---------- Cards / generic ---------- */
+.card{background:linear-gradient(180deg, rgba(63,224,200,.03), rgba(63,224,200,0) 40%), var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:22px; position:relative; box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 12px 28px rgba(0,0,0,.22); transition:border-color .15s ease;}
+.card:hover{border-color:#2C463D;}
+.grid{display:grid; gap:18px; min-width:0;}
+.grid > *{min-width:0;}
+.g2{grid-template-columns:1fr 1fr;}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr 1fr;}}
+h2.section-title{font-family:var(--font-display); font-size:20px; margin-bottom:4px;}
+.section-sub{font-size:13.5px; color:var(--ink-soft); margin-bottom:18px;}
+
+/* ---------- LED board (signature element) ---------- */
+.led-board{
+  background:radial-gradient(circle at 15% 20%, rgba(63,224,200,.08), transparent 45%), var(--board);
+  border-radius:16px; padding:26px 30px; color:#fff; position:relative; overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(63,224,200,.15), 0 16px 40px rgba(0,0,0,.35);
+}
+.led-board::before{
+  content:""; position:absolute; inset:0;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 2px, transparent 2px 4px);
+  pointer-events:none;
+}
+.led-label{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:#7FD9C9; margin-bottom:10px; display:flex; align-items:center; gap:8px;}
+.led-label::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--board-led); box-shadow:0 0 8px var(--board-led); animation:pulse 1.6s infinite;}
+.led-row{display:flex; align-items:baseline; gap:20px; flex-wrap:wrap;}
+.led-number{font-family:var(--font-mono); font-size:52px; font-weight:700; color:var(--board-led); text-shadow:0 0 22px rgba(63,224,200,.65), 0 0 44px rgba(63,224,200,.25); letter-spacing:2px;}
+.led-meta{display:flex; gap:28px; margin-top:14px; flex-wrap:wrap; border-top:1px solid rgba(63,224,200,.12); padding-top:14px;}
+.led-meta div span{display:block; font-size:11px; color:#7FD9C9; text-transform:uppercase; letter-spacing:.06em;}
+.led-meta div b{font-family:var(--font-mono); font-size:17px;}
+
+/* ---------- Stat tiles ---------- */
+.stat-tile{background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 50%), var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px; transition:transform .15s ease, border-color .15s ease;}
+.stat-tile:hover{transform:translateY(-2px); border-color:#2C463D;}
+.hospital-card{transition:transform .15s ease, border-color .15s ease;}
+.hospital-card:hover{transform:translateY(-3px); border-color:var(--primary-light); box-shadow:0 12px 28px rgba(0,0,0,.3);}
+.stat-tile .top{display:flex; justify-content:space-between; align-items:flex-start;}
+.stat-tile .ic{font-size:17px; width:34px; height:34px; border-radius:9px; background:var(--primary-dim); display:flex; align-items:center; justify-content:center;}
+.stat-tile .val{font-family:var(--font-mono); font-size:26px; font-weight:700; margin-top:12px;}
+.stat-tile .lbl{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.tag{display:inline-block; font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600;}
+.tag-success{background:var(--success-dim); color:var(--success); border:1px solid rgba(79,203,138,.25);}
+.tag-warn{background:var(--warn-dim); color:var(--warn); border:1px solid rgba(240,192,92,.25);}
+.tag-alert{background:var(--alert-dim); color:var(--alert); border:1px solid rgba(240,99,122,.25);}
+
+/* ---------- Workflow ---------- */
+.flow-wrap{display:flex; gap:0; overflow-x:auto; padding:6px 2px 14px;}
+.flow-step{min-width:190px; flex:1; position:relative; padding:0 14px 0 0;}
+.flow-step .num{font-family:var(--font-mono); font-size:12px; color:var(--accent); font-weight:700;}
+.flow-step .card{height:100%; padding:16px;}
+.flow-step h4{font-size:14.5px; margin:8px 0 6px;}
+.flow-step p{font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+.flow-arrow{align-self:center; color:var(--border); font-size:20px; padding:0 4px; display:flex; align-items:center;}
+
+/* ---------- Tables ---------- */
+.table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -22px; padding:0 22px;}
+.table-wrap table{min-width:520px;}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); padding:10px 12px; border-bottom:2px solid var(--border);}
+td{padding:12px; border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+
+/* ---------- Book token page ---------- */
+.dept-card{border:1.5px solid var(--border); border-radius:12px; padding:16px; cursor:pointer; transition:.15s; background:linear-gradient(180deg, rgba(255,255,255,.015), transparent 60%);}
+.dept-card:hover{border-color:var(--primary-light); transform:translateY(-2px);}
+.dept-card.selected{border-color:var(--primary); background:var(--primary-dim); box-shadow:0 0 0 1px rgba(63,224,200,.2), 0 8px 20px rgba(63,224,200,.08);}
+.dept-card .em{font-size:22px;}
+.dept-card h4{font-size:14.5px; margin:8px 0 3px;}
+.dept-card span{font-size:12px; color:var(--ink-soft);}
+.doc-row{display:flex; align-items:center; justify-content:space-between; padding:12px; border:1.5px solid var(--border); border-radius:10px; margin-bottom:10px; transition:.15s; flex-wrap:wrap; gap:10px;}
+.doc-row:hover{border-color:#2C463D;}
+.doc-row.selected{border-color:var(--primary); background:var(--primary-dim); box-shadow:0 0 0 1px rgba(63,224,200,.2);}
+.doc-row .info b{font-size:14px; display:block;}
+.doc-row .info span{font-size:12px; color:var(--ink-soft);}
+
+/* ---------- Bed availability (detailed) ---------- */
+.bed-row{
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  padding:13px 14px; border:1.5px solid var(--border); border-radius:11px; margin-bottom:9px;
+  transition:border-color .12s ease, transform .12s ease;
+}
+.bed-row:hover{transform:translateY(-1px);}
+.bed-row.occ{border-left:4px solid var(--alert);}
+.bed-row.free{border-left:4px solid var(--success);}
+.bed-row-left{display:flex; align-items:center; gap:12px; min-width:170px;}
+.bed-id-badge{
+  width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-weight:700; font-size:12.5px; flex-shrink:0;
+}
+.bed-row.free .bed-id-badge{background:var(--success-dim); color:var(--success);}
+.bed-row.occ .bed-id-badge{background:var(--alert-dim); color:var(--alert);}
+.bed-row-left b{font-size:13.5px; display:block;}
+.bed-row-left span{font-size:11.5px; color:var(--ink-soft);}
+.bed-row-mid{flex:1.4; min-width:200px; font-size:12.5px; color:var(--ink-soft); line-height:1.6;}
+.bed-row-mid b{color:var(--ink); font-weight:600;}
+.bed-row-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+.filter-chip{border:1.5px solid var(--border); background:transparent; color:var(--ink-soft); font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:20px;}
+.symptom-chip{border:1.5px solid var(--border); background:var(--bg); color:var(--ink-soft); font-size:12.5px; font-weight:500; padding:8px 14px; border-radius:20px; cursor:pointer; user-select:none; transition:.12s;}
+.symptom-chip:hover{border-color:var(--primary-light);}
+.symptom-chip.active{background:var(--primary-dim); border-color:var(--primary); color:var(--primary); font-weight:600;}
+.filter-chip.active{background:var(--primary-dim); border-color:var(--primary); color:var(--primary);}
+.ward-row{padding:16px 0; border-bottom:1px solid var(--border);}
+.ward-row:last-child{border-bottom:none;}
+.ward-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.ward-head h4{font-size:15px;}
+.ward-head .cnt{font-family:var(--font-mono); font-size:13px; color:var(--ink-soft);}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed; bottom:24px; right:24px; background:#1B2E27; color:#EAF3F0; border:1px solid var(--border); padding:13px 18px; border-radius:10px; font-size:13.5px; box-shadow:0 10px 30px rgba(0,0,0,.4); opacity:0; transform:translateY(10px); transition:.25s; z-index:100;}
+#toast.show{opacity:1; transform:translateY(0);}
+
+/* ---------- Mobile ---------- */
+.hamburger{display:none; background:none; border:none; font-size:20px; color:var(--primary);}
+@media(max-width:880px){
+  .auth-card{grid-template-columns:1fr;}
+  .auth-side{display:none;}
+  .sidebar{position:fixed; z-index:20; transform:translateX(-100%); transition:.25s; box-shadow:0 0 40px rgba(0,0,0,.2);}
+  .sidebar.open{transform:translateX(0);}
+  .hamburger{display:block;}
+  .g2,.g3,.g4{grid-template-columns:1fr;}
+  .bed-grid{grid-template-columns:repeat(5,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-side">
+        <div>
+          <div class="brand"><span class="dot"></span>MediQueue</div>
+          <h2>Digital tokens. Live queue tracking. Zero waiting-room guesswork.</h2>
+          <p>Book a token for your department and doctor, track your position from anywhere, and let the hospital run a smoother day.</p>
+          <ul class="auth-side-list">
+            <li>Live token &amp; estimated wait time</li>
+            <li>Real-time bed availability</li>
+            <li>Downloadable visit &amp; queue reports</li>
+          </ul>
+        </div>
+        <div class="auth-stat-row">
+          <div class="auth-stat"><b id="stat-users">0</b><span>Registered</span></div>
+          <div class="auth-stat"><b id="stat-tokens">0</b><span>Tokens today</span></div>
+          <div class="auth-stat"><b>6</b><span>Departments</span></div>
+        </div>
+        <div style="position:relative; z-index:1; margin-top:26px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:10px; padding:12px 14px; font-size:12.5px; color:#D6F0EA;">
+          <b style="display:block; color:#fff; margin-bottom:4px;">Demo login</b>
+          Patient — aditi@example.com / pass123<br>
+          Staff — adminhospital@gmail.com / pass@1234567890
+        </div>
+      </div>
+      <div class="auth-form-wrap">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login">Log In</button>
+          <button class="auth-tab" id="tab-signup">Create Account</button>
+        </div>
+
+        <div id="auth-error" class="auth-error"></div>
+
+        <!-- LOGIN -->
+        <div id="login-form">
+          <div class="field"><label>Email</label><input type="email" id="login-email" required placeholder="you@example.com"></div>
+          <div class="field"><label>Password</label><input type="password" id="login-password" required placeholder="••••••••"></div>
+          <button class="btn btn-primary btn-block" type="button" id="login-submit-btn">Log In</button>
+          <p class="auth-note">New here? <a href="#" id="go-signup-link" style="color:var(--primary); font-weight:600;">Create an account</a></p>
+        </div>
+
+        <!-- SIGNUP -->
+        <div id="signup-form" class="hidden">
+          <div class="field"><label>Full Name</label><input type="text" id="su-name" required placeholder="Aditi Sharma"></div>
+          <div class="field"><label>Email</label><input type="email" id="su-email" required placeholder="you@example.com"></div>
+          <div class="field"><label>Phone</label><input type="tel" id="su-phone" required placeholder="98xxxxxxxx"></div>
+          <div class="field"><label>Password</label><input type="password" id="su-password" required placeholder="Create a password"></div>
+          <button class="btn btn-primary btn-block" type="button" id="signup-submit-btn">Create Account</button>
+          <p class="auth-note">Already registered? <a href="#" id="go-login-link" style="color:var(--primary); font-weight:600;">Log in instead</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP ================= -->
+  <div id="main-app" class="hidden" style="display:flex; width:100%;">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="dot"></span>MediQueue</div>
+      <button onclick="goPage('hospitals')" style="display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:9px 10px; margin:-4px 0 14px 0; cursor:pointer; width:100%; text-align:left;">
+        <span style="font-size:14px;">🏥</span>
+        <div style="flex:1; overflow:hidden;">
+          <div id="current-hospital-name" style="font-size:11.5px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">No hospital selected</div>
+          <div style="font-size:10px; color:var(--ink-soft);">Tap to switch hospital</div>
+        </div>
+      </button>
+      <div class="nav-group-label">Patient</div>
+      <button class="nav-item" data-page="home" onclick="goPage('home')"><span class="ic">⌂</span>Home</button>
+      <button class="nav-item" data-page="symptomChecker" onclick="goPage('symptomChecker')"><span class="ic">🩺</span>Symptom Checker</button>
+      <button class="nav-item" data-page="doctors" onclick="goPage('doctors')"><span class="ic">🩺</span>Find Doctor</button>
+      <button class="nav-item" data-page="book" onclick="goPage('book')"><span class="ic">🎫</span>Book Appointment</button>
+      <button class="nav-item" data-page="queue" onclick="goPage('queue')"><span class="ic">⏱</span>My Queue</button>
+      <button class="nav-item" data-page="beds" onclick="goPage('beds')"><span class="ic">🛏</span>Bed Availability</button>
+      <button class="nav-item" data-page="location" onclick="goPage('location')"><span class="ic">📍</span>Location</button>
+      <button class="nav-item" data-page="emergency" onclick="goPage('emergency')"><span class="ic">🚑</span>Emergency</button>
+      <button class="nav-item" data-page="about" onclick="goPage('about')"><span class="ic">ℹ</span>About Hospital</button>
+      <button class="nav-item" data-page="reports" onclick="goPage('reports')"><span class="ic">⬇</span>Reports</button>
+      <div class="nav-group-label">Hospital Staff</div>
+      <button class="nav-item" data-page="dashboard" onclick="goPage('dashboard')"><span class="ic">▤</span>Dashboard</button>
+      <button class="nav-item" data-page="users" onclick="goPage('users')"><span class="ic">☰</span>Registered Users</button>
+      <button class="nav-item" data-page="admin" id="nav-admin" onclick="goPage('admin')" style="display:none;"><span class="ic">⚙</span>Admin Panel</button>
+      <button class="nav-item" data-page="workflow" onclick="goPage('workflow')"><span class="ic">↺</span>Workflow</button>
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="user-avatar" id="side-avatar">?</div>
+          <div class="who"><b id="side-name">—</b><span id="side-email">—</span></div>
+          <button class="logout-btn" title="Log out" onclick="handleLogout()">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+          <div>
+            <h1 id="page-title">Home</h1>
+            <div class="sub" id="page-subtitle">Welcome back</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="live-badge"><span class="live-dot"></span>Live</div>
+          <div style="position:relative;">
+            <button id="notif-bell" onclick="toggleNotifPanel()" style="position:relative; background:var(--bg); border:1px solid var(--border); width:38px; height:38px; border-radius:10px; font-size:16px; color:var(--ink);">
+              🔔
+              <span id="notif-badge" style="display:none; position:absolute; top:-5px; right:-5px; background:var(--alert); color:#fff; font-size:10px; font-weight:700; min-width:16px; height:16px; border-radius:8px; align-items:center; justify-content:center; padding:0 3px;"></span>
+            </button>
+            <div id="notif-panel" class="notif-panel"></div>
+          </div>
+        </div>
+      </div>
+      <div class="page" id="page-content"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ==================================================================
+   STATE
+================================================================== */
+let state = {
+  currentUser: null,
+  users: [],
+  tokens: [],
+  beds: {},
+  selectedDept: null,
+  selectedDoc: null,
+  bedFilter: 'all',
+  bedSearch: '',
+  notifications: [],
+  lastBookedToken: null,
+  doctorSearch: '',
+  selectedHospital: null,
+  bedsByHospital: {},
+  selectedCity: null,
+  selectedSymptoms: [],
+  symptomSearch: '',
+  pendingDoctorSearchTerm: null
+};
+let currentPage = 'home';
+
+const GLOBAL_INFO = {
+  emergency: '108',
+  ambulance: '+91 712 245 9999',
+  facilities: ['24x7 Emergency Care','ICU & Critical Care','Free Ambulance Service','In-house Pharmacy','Diagnostic Lab & Imaging','Cashless Insurance Desk','Dedicated Blood Bank','Wheelchair & Patient Transport'],
+  testimonials: [
+    {name:'Rohan Mehta', text:'Booked a token in under a minute and the wait time shown was almost exactly right. No more sitting around guessing.'},
+    {name:'Sneha Kulkarni', text:"Loved being able to check bed availability before heading in for my mother's admission — saved so much back and forth."},
+    {name:'Imran Shaikh', text:'The cardiology team was excellent, and the queue tracker meant I could wait in the car instead of a crowded room.'}
+  ],
+  social: [{label:'Website', url:'#'}, {label:'Instagram', url:'#'}, {label:'Twitter / X', url:'#'}]
+};
+
+const SPEC_EMOJI = {
+  'Cardiology':'❤','Interventional Cardiology':'❤','Non-Invasive Cardiology':'❤','Adult Cardiac Surgery':'🫀','Cardiac Surgery':'🫀',
+  'Neurology':'🧠','Interventional Neurology':'🧠','Neurosurgery':'🧠',
+  'Nephrology':'🩺','Nephrology / Kidney Transplant':'🩺','Urology':'🩺',
+  'Critical Care':'🚨','Internal Medicine / Critical Care':'🚨','Internal Medicine':'🩺','Diabetology / Critical Care':'🚨',
+  'Gastroenterology':'🍽','Gastroenterology / Liver Transplant':'🍽','Liver Transplant Surgery':'🍽',
+  'Pulmonology':'🫁','Pulmonary Medicine':'🫁','Hematology / Hemato-Oncology':'🩸','Haematology':'🩸','Interventional Radiology':'📡',
+  'CTVS':'🫀','Orthopaedics':'🦴','Orthopaedics / Joint Replacement / Spine':'🦴','Orthopaedics / Sports Medicine':'🦴',
+  'Ophthalmology':'👁','Anaesthesiology':'💉','ENT':'👂',
+  'Paediatric Surgery':'🧸','Paediatrics':'🧸','Paediatrics & Neonatology':'🧸','Paediatric Cardiology':'🧸','Paediatric Oncology':'🎗',
+  'Obstetrics & Gynaecology':'🤰','Gynaecology':'🤰','Microbiology':'🔬','Infectious Diseases / Internal Medicine':'🦠',
+  'Oncology':'🎗','Medical Oncology':'🎗','Medical Oncology / BMT':'🎗','Surgical Oncology':'🎗','Head & Neck Oncology':'🎗','Radiation Oncology':'🎗',
+  'Pharmacology':'💊','Physical Medicine & Rehabilitation':'🏃','General Surgery':'🔪','Vascular Surgery':'🩹'
+};
+function emojiFor(spec){ return SPEC_EMOJI[spec] || '🩺'; }
+
+// Raw doctor/specialization rows as provided, organized by city then hospital
+const RAW_HOSPITALS_BY_CITY = {
+  'Nagpur': {
+    'Wockhardt Super Specialty Hospital': [
+      ['Dr. Nitin Tiwari','Interventional Cardiology'],['Dr. Chetan K Sharma','Critical Care'],
+      ['Dr. Suryashree Pandey','Nephrology / Kidney Transplant'],['Dr. Ankur Jain','Neurology'],
+      ['Dr. Amit Ashok Bhatti','Interventional Neurology'],['Dr. Piyush Marudwar','Gastroenterology / Liver Transplant'],
+      ['Dr. Dinesh B Padole','Interventional Cardiology'],['Dr. Swarup Verma','Internal Medicine / Critical Care'],
+      ['Dr. Shrikant Jai','Urology'],['Dr. Ria Ballikar','Hematology / Hemato-Oncology'],
+      ['Dr. Saurabh Jaiswal','Interventional Radiology'],['Dr. Vivek Lanje','CTVS'],['Dr. Swapnil Sharma','Liver Transplant Surgery']
+    ],
+    'KRIMS Hospitals': [
+      ['Dr. Ashok Arbat','Pulmonology'],['Dr. Akshay Patil','Neurosurgery'],['Dr. Parimal Deshpande','Pulmonology'],
+      ['Dr. Swapnil Bakkamwar','Pulmonology'],['Dr. Nikhil B. Lanjewar','Pulmonology'],['Dr. Vivek Lade','Internal Medicine'],
+      ['Dr. Rahul Baghel','Internal Medicine / Critical Care']
+    ],
+    'KIMS-Kingsway Hospitals': [
+      ['Dr. Vimmi Goel','Non-Invasive Cardiology'],['Dr. Anuradha Deshmukh','Microbiology'],['Dr. Tushar Bhure','Orthopaedics'],
+      ['Dr. Ashish Kamble','Ophthalmology'],['Dr. Chandrashekharan Cham','Anaesthesiology'],['Dr. Deepak Goel','Paediatric Surgery'],
+      ['Dr. Harshwardan Bora','Internal Medicine'],['Dr. Sumeet Baheti','Obstetrics & Gynaecology'],['Dr. Shailendra Ganjewar','Cardiology'],
+      ['Dr. Samir Patil','Gastroenterology'],['Dr. Kuldeep Sukhdeve','Paediatrics & Neonatology'],['Dr. Riya Ballikar','Hematology / Hemato-Oncology'],
+      ['Dr. Dipti Chand','Diabetology / Critical Care'],['Dr. Nitin Shinde','Infectious Diseases / Internal Medicine'],
+      ['Dr. Akshay Dalal','Interventional Cardiology'],['Dr. Ajay Abhimanyu Bulle','Internal Medicine'],['Dr. Vasudeo Ridhorkar','Urology'],
+      ['Dr. Ashay Suryawanshi','Urology'],['Dr. Ritesh Satardey','Urology'],['Dr. Mukesh Sancheti','Orthopaedics'],['Dr. Rohan Bansal','Orthopaedics']
+    ],
+    'Arihant Multispeciality Hospital': [
+      ['Cardiology','Cardiology'],['Cardiothoracic Surgery','CTVS'],['Neurology','Neurology'],['Neurosurgery','Neurosurgery'],
+      ['Paediatric Surgery','Paediatric Surgery'],['Medical Oncology','Medical Oncology'],['Onco Surgery','Surgical Oncology'],
+      ['Urology','Urology'],['Nephrology','Nephrology'],['Gastroenterology','Gastroenterology'],['Ophthalmology','Ophthalmology']
+    ],
+    'Orange City Hospital & Research Institute': [
+      ['Cardiology','Cardiology'],['Neurology','Neurology'],['Orthopaedics','Orthopaedics'],
+      ['Gastroenterology','Gastroenterology'],['Nephrology','Nephrology'],['Urology','Urology']
+    ],
+    'CARE Hospitals': [
+      ['Cardiology','Cardiology'],['Neurology','Neurology'],['Neurosurgery','Neurosurgery'],['Gastroenterology','Gastroenterology'],
+      ['Nephrology','Nephrology'],['Orthopaedics','Orthopaedics'],['Oncology','Oncology'],['Urology','Urology'],['Paediatrics','Paediatrics']
+    ],
+    'Lata Mangeshkar Hospital': [
+      ['Cardiology','Cardiology'],['Neurology','Neurology'],['Orthopaedics','Orthopaedics'],['Gastroenterology','Gastroenterology'],
+      ['Nephrology','Nephrology'],['Gynaecology','Obstetrics & Gynaecology'],['Paediatrics','Paediatrics']
+    ],
+    'Seven Star Hospital': [
+      ['Cardiology','Cardiology'],['Neurology','Neurology'],['Orthopaedics','Orthopaedics'],
+      ['Gastroenterology','Gastroenterology'],['Nephrology','Nephrology'],['Urology','Urology']
+    ],
+    'Max Super Speciality Hospital': [
+      ['Cardiology','Cardiology'],['Neurology','Neurology'],['Neurosurgery','Neurosurgery'],['Oncology','Oncology'],
+      ['Gastroenterology','Gastroenterology'],['Nephrology','Nephrology'],['Orthopaedics','Orthopaedics'],['Urology','Urology']
+    ],
+    'Integrity Hospital': [
+      ['Cardiology','Cardiology'],['Neurology','Neurology'],['Orthopaedics','Orthopaedics'],
+      ['Gastroenterology','Gastroenterology'],['Nephrology','Nephrology'],['Urology','Urology']
+    ],
+    'AIIMS Nagpur': [
+      ['Dr. Neelesh Shrivastava','Surgical Oncology'],['Dr. Khushboo Dharamsingh Bisht','Pharmacology'],
+      ['Dr. Jayshri Vipin Ekhar','Ophthalmology'],['Dr. Rohit Ramesh Gaikar','Physical Medicine & Rehabilitation'],
+      ['Dr. Shubhada Shashikant Khanapure','Surgical Oncology']
+    ]
+  },
+  'Pune': {
+    'Ruby Hall Clinic': [
+      ['Dr. Purvez K. Grant','Cardiology'],['Dr. Chandrashekhar Makhale','Cardiology'],['Dr. Pramod Kadam','General Surgery'],
+      ['Dr. Manish Machave','Obstetrics & Gynaecology'],['Dr. Abhijit Baheti','Haematology'],
+      ['Dr. Shrikant Dalal','Orthopaedics / Joint Replacement / Spine'],['Dr. Pankaj Sugaonkar','Paediatric Cardiology'],
+      ['Dr. Lalit Rawal','Paediatrics & Neonatology'],['Dr. Vikas Patil','Neurology'],['Dr. Nitin Jagtap','Gastroenterology']
+    ],
+    'Deenanath Mangeshkar Hospital': [
+      ['Dr. Shireesh P. Sathe','Cardiology'],['Dr. Satej Janorkar','Cardiology'],['Dr. Rajesh A. Dhopeshwarkar','Cardiology'],
+      ['Dr. Prashant Mishra','Cardiology'],['Dr. Aniket Gadre','Cardiology'],['Dr. Prasad Rao','Neurology'],
+      ['Dr. Pradeep Kamat','Neurosurgery'],['Dr. Suresh Shinde','Gastroenterology'],['Dr. Sanjay Bhat','Orthopaedics'],
+      ['Dr. Ranjit Deshpande','Nephrology']
+    ],
+    'Jehangir Hospital': [
+      ['Dr. Anil Dhall','Cardiology'],['Dr. Sanjay Chugh','Neurology'],['Dr. Paresh Doshi','Neurosurgery'],
+      ['Dr. Jatin Ashar','Gastroenterology'],['Dr. Mihir Bapat','Orthopaedics'],['Dr. Bharat Shah','Nephrology'],
+      ['Dr. Suresh Advani','Medical Oncology'],['Dr. Rishikesh Kankaria','Urology'],['Dr. Manish Machave','Obstetrics & Gynaecology']
+    ],
+    'Sahyadri Hospitals': [
+      ['Dr. Shirish Hastak','Neurology'],['Dr. Ashok Seth','Cardiology'],['Dr. Vinay Thorat','Cardiology'],
+      ['Dr. Ajit Pawar','Neurosurgery'],['Dr. Prashant Girme','Gastroenterology'],['Dr. Sandeep Shinde','Nephrology'],
+      ['Dr. Abhay Kulkarni','Orthopaedics'],['Dr. Nikhil Datar','Urology'],['Dr. Rajendra Patil','Oncology']
+    ],
+    'Sassoon General Hospital': [
+      ['Dr. Sanjay Patil','Cardiology'],['Dr. Prasad Rao','Neurology'],['Dr. Avinash Supe','General Surgery'],
+      ['Dr. Rajendra Patil','Orthopaedics'],['Dr. Nitin Jagtap','Gastroenterology'],['Dr. Shirish Hastak','Neurology'],
+      ['Dr. Bharat Shah','Nephrology'],['Dr. Manish Machave','Obstetrics & Gynaecology']
+    ],
+    'Aditya Birla Memorial Hospital': [
+      ['Dr. Prashant Pawar','Cardiology'],['Dr. Sanjay Patil','Cardiology'],['Dr. Sandeep Shinde','Nephrology'],
+      ['Dr. Jatin Ashar','Gastroenterology'],['Dr. Mihir Bapat','Orthopaedics'],['Dr. Paresh Doshi','Neurosurgery'],
+      ['Dr. Suresh Advani','Oncology'],['Dr. Rishikesh Kankaria','Urology'],['Dr. Manish Machave','Obstetrics & Gynaecology']
+    ],
+    'KEM Hospital Pune': [
+      ['Dr. Sanjay Patil','Cardiology'],['Dr. Prasad Rao','Neurology'],['Dr. Avinash Supe','General Surgery'],
+      ['Dr. Rajendra Patil','Orthopaedics'],['Dr. Nitin Jagtap','Gastroenterology'],['Dr. Bharat Shah','Nephrology'],
+      ['Dr. Manish Machave','Obstetrics & Gynaecology']
+    ],
+    'Noble Hospitals': [
+      ['Dr. Sanjay Patil','Cardiology'],['Dr. Prasad Rao','Neurology'],['Dr. Paresh Doshi','Neurosurgery'],
+      ['Dr. Jatin Ashar','Gastroenterology'],['Dr. Mihir Bapat','Orthopaedics'],['Dr. Bharat Shah','Nephrology'],
+      ['Dr. Rishikesh Kankaria','Urology'],['Dr. Manish Machave','Obstetrics & Gynaecology']
+    ],
+    'Bharati Hospital': [
+      ['Dr. Prashant Mishra','Cardiology'],['Dr. Shirish Hastak','Neurology'],['Dr. Pradeep Kamat','Neurosurgery'],
+      ['Dr. Nitin Jagtap','Gastroenterology'],['Dr. Sanjay Bhat','Orthopaedics'],['Dr. Ranjit Deshpande','Nephrology'],
+      ['Dr. Suresh Advani','Oncology'],['Dr. Rishikesh Kankaria','Urology']
+    ],
+    'Manipal Hospital Pune': [
+      ['Dr. Anil Dhall','Cardiology'],['Dr. Sanjay Chugh','Neurology'],['Dr. Paresh Doshi','Neurosurgery'],
+      ['Dr. Jatin Ashar','Gastroenterology'],['Dr. Mihir Bapat','Orthopaedics'],['Dr. Bharat Shah','Nephrology'],
+      ['Dr. Suresh Advani','Oncology'],['Dr. Rishikesh Kankaria','Urology'],['Dr. Manish Machave','Obstetrics & Gynaecology']
+    ]
+  },
+  'Mumbai': {
+    'Kokilaben Dhirubhai Ambani Hospital': [
+      ['Dr. Manish Hinduja','Adult Cardiac Surgery'],['Dr. Pravin Kahale','Cardiology'],['Dr. Santanu Sen','Medical Oncology / BMT'],
+      ['Dr. Niranjan Kulkarni','Nephrology'],['Dr. Sharad Sheth','Nephrology'],['Dr. Annu Aggarwal','Neurology'],
+      ['Dr. Tushar Raut','Neurology'],['Dr. Abhaya Kumar','Neurosurgery'],['Dr. Gaurav Mehta','Gastroenterology'],
+      ['Dr. Rajesh Mistry','Surgical Oncology'],['Dr. Raghuram Sekhar','Vascular Surgery'],['Dr. Anshumala Shukla-Kulkarni','Gynaecology'],
+      ['Dr. Tanu Singhal','Paediatrics'],['Dr. Shreyash Gajjar','Orthopaedics / Sports Medicine'],['Dr. Sandeep Wasnik','Orthopaedics'],
+      ['Dr. Sumeet Singhania','Pulmonary Medicine']
+    ],
+    'Lilavati Hospital & Research Centre': [
+      ['Dr. Rajiv Sangal','Cardiology'],['Dr. Sanjay Chugh','Neurology'],['Dr. Prakash Shetty','Orthopaedics'],
+      ['Dr. Bharat Shah','Nephrology'],['Dr. Jatin Ashar','Gastroenterology'],['Dr. Harit Chaturvedi','Oncology'],
+      ['Dr. Sandeep Nayak','Surgical Oncology'],['Dr. Nitin Kumar','Neurosurgery'],['Dr. Rishikesh Kankaria','Urology'],
+      ['Dr. Anuradha Kapur','Gynaecology']
+    ],
+    'Nanavati Max Super Speciality Hospital': [
+      ['Dr. Anil Dhall','Cardiology'],['Dr. Rajesh Mistry','Surgical Oncology'],['Dr. Suresh Advani','Medical Oncology'],
+      ['Dr. Ajay Kaul','Cardiac Surgery'],['Dr. Paresh Doshi','Neurosurgery'],['Dr. Sanjay Pandey','Urology'],
+      ['Dr. Abhishek Shankar','Neurology'],['Dr. Nilesh Shah','Gastroenterology'],['Dr. Mihir Bapat','Orthopaedics'],
+      ['Dr. Rakesh Sinha','Nephrology']
+    ],
+    'Jaslok Hospital': [
+      ['Dr. Rajesh Kharat','Cardiology'],['Dr. Suresh Joshi','Cardiology'],['Dr. Anil Bansal','Neurology'],
+      ['Dr. Paresh Doshi','Neurosurgery'],['Dr. Amit Maydeo','Gastroenterology'],['Dr. Sanjay Pandey','Urology'],
+      ['Dr. Rajendra Patil','Nephrology'],['Dr. Rakesh Sinha','Oncology'],['Dr. Anjali Batra','Gynaecology']
+    ],
+    'P. D. Hinduja Hospital': [
+      ['Dr. Ashok Seth','Cardiology'],["Dr. Anil D'Cruz",'Head & Neck Oncology'],['Dr. Sanjay Desai','Neurology'],
+      ['Dr. B. K. Misra','Neurosurgery'],['Dr. Rakesh Sinha','Nephrology'],['Dr. Amit Maydeo','Gastroenterology'],
+      ['Dr. Sanjay Pandey','Urology'],['Dr. Huzefa Bandukwala','Orthopaedics']
+    ],
+    'Breach Candy Hospital': [
+      ['Dr. Anil Dhall','Cardiology'],['Dr. Ashok Seth','Cardiology'],['Dr. Jamshed Dalal','Cardiac Surgery'],
+      ['Dr. Bharat Shah','Nephrology'],['Dr. Amit Maydeo','Gastroenterology'],['Dr. Nitin Kumar','Neurosurgery'],
+      ['Dr. Mihir Bapat','Orthopaedics'],['Dr. Rishikesh Kankaria','Urology']
+    ],
+    'Saifee Hospital': [
+      ['Dr. Anil Dhall','Cardiology'],['Dr. Ashok Seth','Cardiology'],['Dr. Zahir Abbas Merchant','Interventional Cardiology'],
+      ['Dr. Amit Maydeo','Gastroenterology'],['Dr. Bharat Shah','Nephrology'],['Dr. Paresh Doshi','Neurosurgery'],
+      ['Dr. Sanjay Pandey','Urology'],['Dr. Mihir Bapat','Orthopaedics'],['Dr. Suresh Advani','Medical Oncology']
+    ],
+    'Bombay Hospital & Medical Research Centre': [
+      ['Dr. Ashok Seth','Cardiology'],['Dr. Anil Dhall','Cardiology'],['Dr. Amit Maydeo','Gastroenterology'],
+      ['Dr. Sanjay Pandey','Urology'],['Dr. Bharat Shah','Nephrology'],['Dr. Paresh Doshi','Neurosurgery'],
+      ["Dr. Anil D'Cruz",'Oncology'],['Dr. Mihir Bapat','Orthopaedics']
+    ],
+    'Tata Memorial Hospital': [
+      ['Dr. Rajendra Badwe','Surgical Oncology'],['Dr. Sudeep Gupta','Medical Oncology'],["Dr. Anil D'Cruz",'Head & Neck Oncology'],
+      ['Dr. Shripad Banavali','Paediatric Oncology'],['Dr. S. H. Advani','Medical Oncology'],['Dr. V. R. Radhakrishnan','Radiation Oncology'],
+      ['Dr. Vijay Patil','Medical Oncology'],['Dr. Shailesh Shrikhande','Surgical Oncology']
+    ],
+    'KEM Hospital Mumbai': [
+      ['Dr. Sanjay Oak','Orthopaedics'],['Dr. Hemant Morparia','Ophthalmology'],['Dr. Milind Kirtane','ENT'],
+      ['Dr. Avinash Supe','General Surgery'],['Dr. Pravin Shingare','Cardiology'],['Dr. Nadir Bharucha','Neurology'],
+      ['Dr. Anand Alurkar','Neurosurgery'],['Dr. Suresh Advani','Oncology']
+    ]
+  }
+};
+
+const HOSPITAL_ADDRESSES = {
+  'Wockhardt Super Specialty Hospital': 'Wockhardt Hospitals, Manewada Ring Road, Nagpur, Maharashtra',
+  'KRIMS Hospitals': 'KRIMS Hospitals, Ramdaspeth, Nagpur, Maharashtra',
+  'KIMS-Kingsway Hospitals': 'KIMS-Kingsway Hospitals, Sadar, Nagpur, Maharashtra',
+  'Arihant Multispeciality Hospital': 'Arihant Multispeciality Hospital, Nagpur, Maharashtra',
+  'Orange City Hospital & Research Institute': 'Orange City Hospital, Rachana Society, Nagpur, Maharashtra',
+  'CARE Hospitals': 'CARE Hospitals, Nagpur, Maharashtra',
+  'Lata Mangeshkar Hospital': 'Lata Mangeshkar Hospital, Hingna Road, Nagpur, Maharashtra',
+  'Seven Star Hospital': 'Seven Star Hospital, Nagpur, Maharashtra',
+  'Max Super Speciality Hospital': 'Max Super Speciality Hospital, Nagpur, Maharashtra',
+  'Integrity Hospital': 'Integrity Hospital, Nagpur, Maharashtra',
+  'AIIMS Nagpur': 'AIIMS Nagpur, Mihan, Nagpur, Maharashtra',
+  'Ruby Hall Clinic': 'Ruby Hall Clinic, Sassoon Road, Pune, Maharashtra',
+  'Deenanath Mangeshkar Hospital': 'Deenanath Mangeshkar Hospital, Erandwane, Pune, Maharashtra',
+  'Jehangir Hospital': 'Jehangir Hospital, Sassoon Road, Pune, Maharashtra',
+  'Sahyadri Hospitals': 'Sahyadri Hospitals, Deccan Gymkhana, Pune, Maharashtra',
+  'Sassoon General Hospital': 'Sassoon General Hospital, Pune, Maharashtra',
+  'Aditya Birla Memorial Hospital': 'Aditya Birla Memorial Hospital, Chinchwad, Pune, Maharashtra',
+  'KEM Hospital Pune': 'KEM Hospital, Rasta Peth, Pune, Maharashtra',
+  'Noble Hospitals': 'Noble Hospitals, Magarpatta, Pune, Maharashtra',
+  'Bharati Hospital': 'Bharati Hospital, Dhankawadi, Pune, Maharashtra',
+  'Manipal Hospital Pune': 'Manipal Hospital, Baner, Pune, Maharashtra',
+  'Kokilaben Dhirubhai Ambani Hospital': 'Kokilaben Dhirubhai Ambani Hospital, Four Bunglows, Andheri West, Mumbai, Maharashtra',
+  'Lilavati Hospital & Research Centre': 'Lilavati Hospital, Bandra West, Mumbai, Maharashtra',
+  'Nanavati Max Super Speciality Hospital': 'Nanavati Max Hospital, Vile Parle West, Mumbai, Maharashtra',
+  'Jaslok Hospital': 'Jaslok Hospital, Pedder Road, Mumbai, Maharashtra',
+  'P. D. Hinduja Hospital': 'P. D. Hinduja Hospital, Mahim, Mumbai, Maharashtra',
+  'Breach Candy Hospital': 'Breach Candy Hospital, Breach Candy, Mumbai, Maharashtra',
+  'Saifee Hospital': 'Saifee Hospital, Charni Road, Mumbai, Maharashtra',
+  'Bombay Hospital & Medical Research Centre': 'Bombay Hospital, Marine Lines, Mumbai, Maharashtra',
+  'Tata Memorial Hospital': 'Tata Memorial Hospital, Parel, Mumbai, Maharashtra',
+  'KEM Hospital Mumbai': 'KEM Hospital, Parel, Mumbai, Maharashtra'
+};
+
+const HOSPITAL_COORDS = {
+  'Wockhardt Super Specialty Hospital': [21.1023, 79.1017],
+  'KRIMS Hospitals': [21.1362, 79.0729],
+  'KIMS-Kingsway Hospitals': [21.1614, 79.0687],
+  'Arihant Multispeciality Hospital': [21.1500, 79.0850],
+  'Orange City Hospital & Research Institute': [21.1200, 79.0500],
+  'CARE Hospitals': [21.1400, 79.0800],
+  'Lata Mangeshkar Hospital': [21.1050, 79.0100],
+  'Seven Star Hospital': [21.1300, 79.0600],
+  'Max Super Speciality Hospital': [21.1250, 79.0750],
+  'Integrity Hospital': [21.1450, 79.0950],
+  'AIIMS Nagpur': [20.9800, 79.0100],
+  'Ruby Hall Clinic': [18.5308, 73.8770],
+  'Deenanath Mangeshkar Hospital': [18.5033, 73.8297],
+  'Jehangir Hospital': [18.5290, 73.8760],
+  'Sahyadri Hospitals': [18.5177, 73.8410],
+  'Sassoon General Hospital': [18.5300, 73.8740],
+  'Aditya Birla Memorial Hospital': [18.6298, 73.7997],
+  'KEM Hospital Pune': [18.5167, 73.8636],
+  'Noble Hospitals': [18.5158, 73.9280],
+  'Bharati Hospital': [18.4633, 73.8390],
+  'Manipal Hospital Pune': [18.5590, 73.7868],
+  'Kokilaben Dhirubhai Ambani Hospital': [19.1330, 72.8258],
+  'Lilavati Hospital & Research Centre': [19.0544, 72.8296],
+  'Nanavati Max Super Speciality Hospital': [19.1003, 72.8425],
+  'Jaslok Hospital': [18.9679, 72.8090],
+  'P. D. Hinduja Hospital': [19.0409, 72.8407],
+  'Breach Candy Hospital': [18.9679, 72.8081],
+  'Saifee Hospital': [18.9548, 72.8180],
+  'Bombay Hospital & Medical Research Centre': [18.9463, 72.8258],
+  'Tata Memorial Hospital': [19.0016, 72.8425],
+  'KEM Hospital Mumbai': [19.0016, 72.8397]
+};
+
+function slugify(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLon = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function buildDepartmentsForHospital(rows){
+  const bySpec = {};
+  rows.forEach(([docName, spec], idx)=>{
+    if(!bySpec[spec]) bySpec[spec] = [];
+    const isGeneric = docName === spec;
+    bySpec[spec].push({
+      id: 'doc-' + slugify(spec) + '-' + idx,
+      name: isGeneric ? (spec + ' Consultant') : docName,
+      avg: 8 + (idx % 4) * 3,
+      qualification: isGeneric ? 'MBBS, ' + spec + ' Specialist' : 'MBBS, MD/MS (' + spec.split('/')[0].trim() + ')',
+      experience: (6 + (idx * 2) % 15) + ' yrs',
+      days: idx % 2 === 0 ? 'Mon–Sat' : 'Mon, Wed, Fri',
+      timing: idx % 3 === 0 ? '9:00 AM – 1:00 PM' : (idx % 3 === 1 ? '11:00 AM – 3:00 PM' : '2:00 PM – 6:00 PM'),
+      fee: '₹' + (400 + (idx * 70) % 600),
+      rating: (4.2 + (idx % 5) * 0.15).toFixed(1),
+      available: true,
+      reviews: isGeneric ? [] : [{author:'Verified Patient', stars: 4 + (idx%2), text:'Professional and attentive care during my visit.'}]
+    });
+  });
+  return Object.keys(bySpec).map(spec=>({
+    id: slugify(spec),
+    name: spec,
+    em: emojiFor(spec),
+    doctors: bySpec[spec]
+  }));
+}
+
+const CITIES = Object.keys(RAW_HOSPITALS_BY_CITY);
+
+const HOSPITALS = CITIES.flatMap(city =>
+  Object.keys(RAW_HOSPITALS_BY_CITY[city]).map(name => ({
+    id: slugify(city) + '-' + slugify(name),
+    name,
+    city,
+    address: HOSPITAL_ADDRESSES[name] || (name + ', ' + city + ', Maharashtra'),
+    phone: '+91 ' + (city==='Mumbai'?'22':city==='Pune'?'20':'712') + ' ' + (2200000 + slugify(name).length*137).toString().slice(0,7),
+    email: slugify(name).replace(/-/g,'') + '@example.com',
+    lat: (HOSPITAL_COORDS[name]||[21.1458,79.0882])[0],
+    lng: (HOSPITAL_COORDS[name]||[21.1458,79.0882])[1],
+    departments: buildDepartmentsForHospital(RAW_HOSPITALS_BY_CITY[city][name])
+  }))
+);
+
+/* ==================================================================
+   SYMPTOM CHECKER DATA
+   Informational only — always paired with a "consult a doctor"
+   disclaimer in the UI. Not a diagnosis.
+================================================================== */
+const DISEASES = [
+  {name:'Dengue', symptoms:'High fever, headache, body/joint pain, nausea, rash', specialty:'Internal Medicine'},
+  {name:'Malaria', symptoms:'Fever, chills, sweating, headache, weakness', specialty:'Internal Medicine'},
+  {name:'Chikungunya', symptoms:'Fever, severe joint pain, muscle pain, rash', specialty:'Internal Medicine'},
+  {name:'Typhoid', symptoms:'Prolonged fever, weakness, stomach pain, headache, diarrhea/constipation', specialty:'Internal Medicine'},
+  {name:'Tuberculosis (TB)', symptoms:'Persistent cough, fever, night sweats, weight loss, fatigue', specialty:'Pulmonology'},
+  {name:'COVID-19', symptoms:'Fever, cough, sore throat, fatigue, body aches', specialty:'Internal Medicine'},
+  {name:'Influenza/Flu', symptoms:'Fever, cough, sore throat, body aches, fatigue', specialty:'Internal Medicine'},
+  {name:'Pneumonia', symptoms:'Fever, cough, breathing difficulty, chest discomfort', specialty:'Pulmonology'},
+  {name:'Cholera', symptoms:'Severe watery diarrhea, vomiting, dehydration', specialty:'Internal Medicine'},
+  {name:'Hepatitis A', symptoms:'Fever, nausea, abdominal discomfort, dark urine, jaundice', specialty:'Gastroenterology'},
+  {name:'Hepatitis B', symptoms:'Fatigue, nausea, abdominal pain, dark urine, jaundice', specialty:'Gastroenterology'},
+  {name:'Hepatitis C', symptoms:'Often no symptoms initially; fatigue, nausea, jaundice', specialty:'Gastroenterology'},
+  {name:'Rabies', symptoms:'Fever, headache, weakness; later neurological symptoms', specialty:'Neurology'},
+  {name:'Measles', symptoms:'Fever, cough, runny nose, red eyes, rash', specialty:'Paediatrics'},
+  {name:'Chickenpox', symptoms:'Fever, tiredness, itchy fluid-filled rash', specialty:'Internal Medicine'},
+  {name:'Diphtheria', symptoms:'Sore throat, fever, swollen neck, difficulty swallowing', specialty:'Internal Medicine'},
+  {name:'Tetanus', symptoms:'Muscle stiffness, painful muscle spasms, difficulty swallowing', specialty:'Internal Medicine'},
+  {name:'Meningitis', symptoms:'Fever, severe headache, stiff neck, vomiting, confusion', specialty:'Neurology'},
+  {name:'Japanese Encephalitis', symptoms:'Fever, headache, vomiting, neurological symptoms', specialty:'Neurology'},
+  {name:'Scrub Typhus', symptoms:'Fever, headache, muscle pain, rash, sometimes an eschar', specialty:'Internal Medicine'},
+  {name:'Leptospirosis', symptoms:'Fever, headache, muscle pain, vomiting; sometimes jaundice', specialty:'Internal Medicine'},
+  {name:'Kala-azar', symptoms:'Prolonged fever, weight loss, enlarged spleen/liver, weakness', specialty:'Internal Medicine'},
+  {name:'Filariasis', symptoms:'Swelling of limbs/genitals, fever, pain', specialty:'Internal Medicine'},
+  {name:'Zika', symptoms:'Mild fever, rash, headache, joint/muscle pain, red eyes', specialty:'Internal Medicine'},
+  {name:'Nipah', symptoms:'Fever, headache, cough/breathing difficulty, vomiting, neurological symptoms', specialty:'Neurology'},
+  {name:'Hypertension', symptoms:'Often no symptoms; sometimes headache/dizziness', specialty:'Cardiology'},
+  {name:'Diabetes', symptoms:'Increased thirst, frequent urination, fatigue, blurred vision', specialty:'Internal Medicine'},
+  {name:'Heart disease', symptoms:'Chest discomfort, breathlessness, fatigue, palpitations', specialty:'Cardiology'},
+  {name:'Stroke', symptoms:'Sudden weakness/numbness, speech difficulty, facial drooping, dizziness', specialty:'Neurology'},
+  {name:'Asthma', symptoms:'Wheezing, cough, chest tightness, breathing difficulty', specialty:'Pulmonology'},
+  {name:'COPD', symptoms:'Persistent cough, phlegm, breathlessness', specialty:'Pulmonology'},
+  {name:'Kidney disease', symptoms:'Swelling, fatigue, changes in urination, nausea', specialty:'Nephrology'},
+  {name:'Liver disease', symptoms:'Fatigue, abdominal discomfort, jaundice, swelling', specialty:'Gastroenterology'},
+  {name:'Breast cancer', symptoms:'Breast lump/change, nipple changes, skin changes', specialty:'Oncology'},
+  {name:'Cervical cancer', symptoms:'Abnormal vaginal bleeding/discharge, pelvic pain', specialty:'Oncology'},
+  {name:'Oral cancer', symptoms:'Persistent mouth ulcer/lump, difficulty swallowing, voice changes', specialty:'Oncology'},
+  {name:'Lung cancer', symptoms:'Persistent cough, chest pain, breathlessness, coughing blood', specialty:'Oncology'},
+  {name:'Anemia', symptoms:'Fatigue, weakness, dizziness, pale skin, breathlessness', specialty:'Internal Medicine'},
+  {name:'Thyroid disorders', symptoms:'Weight/energy changes, temperature sensitivity, palpitations', specialty:'Internal Medicine'},
+  {name:'Arthritis', symptoms:'Joint pain, stiffness, swelling, reduced movement', specialty:'Orthopaedics'},
+  {name:'Migraine', symptoms:'Recurrent headache, nausea, light/sound sensitivity', specialty:'Neurology'},
+  {name:'Epilepsy', symptoms:'Recurrent seizures, temporary loss of awareness', specialty:'Neurology'},
+  {name:'Depression', symptoms:'Persistent low mood, loss of interest, sleep/appetite changes', specialty:'Internal Medicine'},
+  {name:'Anxiety disorders', symptoms:'Excessive worry, restlessness, palpitations, difficulty concentrating', specialty:'Internal Medicine'}
+].map(d => ({...d, symptomList: d.symptoms.split(',').map(s=>s.trim()).filter(Boolean)}));
+
+const ALL_SYMPTOMS = (() => {
+  const seen = new Map();
+  DISEASES.forEach(d => d.symptomList.forEach(s => {
+    const key = s.toLowerCase();
+    if(!seen.has(key)) seen.set(key, s);
+  }));
+  return Array.from(seen.values()).sort((a,b)=>a.localeCompare(b));
+})();
+
+const DEFAULT_WARDS = [
+  {name:'General Ward', total:24},
+  {name:'ICU', total:10},
+  {name:'Emergency', total:8},
+  {name:'Private Room', total:14}
+];
+
+/* ==================================================================
+   STORAGE HELPERS  (localStorage — persists across reloads, fully
+   standalone, no external services needed. Falls back to in-memory
+   silently if localStorage is blocked.)
+================================================================== */
+const LS_KEYS = {users:'mq_users', tokens:'mq_tokens', beds:'mq_beds', session:'mq_session', seeded:'mq_seeded', hospital:'mq_selected_hospital', city:'mq_selected_city'};
+
+function lsGet(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* ignore */ }
+}
+
+async function loadState(){
+  const savedUsers = lsGet(LS_KEYS.users, null);
+  if(savedUsers && savedUsers.length){
+    // returning visit with real saved data — use it as-is
+    state.users = savedUsers;
+    state.tokens = lsGet(LS_KEYS.tokens, []);
+    state.bedsByHospital = lsGet(LS_KEYS.beds, null) || {};
+  } else {
+    // first run, OR storage is unavailable/blocked — build demo data
+    // directly in memory so the app works either way
+    const demo = buildDemoData();
+    state.users = demo.users;
+    state.tokens = demo.tokens;
+    state.bedsByHospital = demo.bedsByHospital;
+    lsSet(LS_KEYS.users, state.users);
+    lsSet(LS_KEYS.tokens, state.tokens);
+    lsSet(LS_KEYS.beds, state.bedsByHospital);
+  }
+  state.currentUser = lsGet(LS_KEYS.session, null);
+  state.selectedCity = lsGet(LS_KEYS.city, null);
+  const savedHospitalId = lsGet(LS_KEYS.hospital, null);
+  if(savedHospitalId){
+    const h = HOSPITALS.find(h=>h.id===savedHospitalId);
+    if(h){ state.selectedHospital = h; state.selectedCity = h.city; ensureHospitalBeds(h); }
+  }
+}
+
+function buildDemoData(){
+  const demoUsers = [
+    {name:'Hospital Admin', email:'adminhospital@gmail.com', phone:'9000000000', password:'pass@1234567890', role:'staff', registeredAt:daysAgoISO(6)},
+    {name:'Aditi Sharma', email:'aditi@example.com', phone:'9821345670', password:'pass123', role:'patient', registeredAt:daysAgoISO(4)},
+    {name:'Rohan Mehta', email:'rohan@example.com', phone:'9876512340', password:'pass123', role:'patient', registeredAt:daysAgoISO(3)},
+    {name:'Sneha Kulkarni', email:'sneha@example.com', phone:'9012345678', password:'pass123', role:'patient', registeredAt:daysAgoISO(2)},
+    {name:'Imran Shaikh', email:'imran@example.com', phone:'9988776655', password:'pass123', role:'patient', registeredAt:daysAgoISO(1)}
+  ];
+  const demoHospital = HOSPITALS[0]; // Wockhardt — used only to pre-seed a few realistic demo tokens
+  const bedsByHospital = {};
+  bedsByHospital[demoHospital.id] = seedBeds(demoHospital);
+  const dep1 = demoHospital.departments[0], dep2 = demoHospital.departments[1] || demoHospital.departments[0];
+  const demoTokens = [
+    mkToken(demoHospital, dep1.id, dep1.doctors[0].id, 'Rohan Mehta','rohan@example.com','waiting',12),
+    mkToken(demoHospital, dep1.id, dep1.doctors[0].id, 'Sneha Kulkarni','sneha@example.com','waiting',24),
+    mkToken(demoHospital, dep2.id, dep2.doctors[0].id, 'Imran Shaikh','imran@example.com','waiting',15),
+    mkToken(demoHospital, dep1.id, dep1.doctors[0].id, 'Aditi Sharma','aditi@example.com','done',0)
+  ];
+  return {users:demoUsers, tokens:demoTokens, bedsByHospital};
+}
+function daysAgoISO(d){ const t = new Date(); t.setDate(t.getDate()-d); return t.toISOString(); }
+let demoTokenCounter = 0;
+function mkToken(hospital, deptId, docId, patientName, patientEmail, status, minsAgo){
+  const dept = hospital.departments.find(d=>d.id===deptId);
+  const doc = dept.doctors.find(d=>d.id===docId);
+  demoTokenCounter++;
+  const bookedAt = new Date(Date.now() - minsAgo*60000).toISOString();
+  return {
+    id:'seed'+demoTokenCounter,
+    tokenNo: dept.id.toUpperCase().slice(0,3)+'-'+String(demoTokenCounter).padStart(3,'0'),
+    hospitalId: hospital.id, hospitalName: hospital.name,
+    dept: dept.name, doctor: doc.name,
+    patientEmail, patientName, bookedAt,
+    status, position: demoTokenCounter, estWait: doc.avg * 2
+  };
+}
+const MOCK_PATIENTS = ['Anil Deshmukh','Priya Nair','Rakesh Yadav','Meena Joshi','Farhan Ali','Kavita Reddy','Suresh Pillai','Neha Kapoor','Arjun Singh','Lata Bhosale','Vikram Chawla','Divya Menon','Sanjay Gupta','Pooja Rane','Irfan Sheikh'];
+const WARD_BED_TYPES = {
+  'General Ward': ['Standard Bed'],
+  'ICU': ['Ventilator Bed','Cardiac Monitor Bed'],
+  'Emergency': ['Trauma Bay','Observation Bed'],
+  'Private Room': ['Deluxe Room','Suite Room']
+};
+function randomDoctorFor(hospital){
+  const depts = hospital.departments;
+  const dept = depts[Math.floor(Math.random()*depts.length)];
+  return dept.doctors[Math.floor(Math.random()*dept.doctors.length)];
+}
+function seedBeds(hospital){
+  const beds = {};
+  DEFAULT_WARDS.forEach(w=>{
+    const types = WARD_BED_TYPES[w.name] || ['Standard Bed'];
+    const arr = [];
+    for(let i=0;i<w.total;i++){
+      const occupied = Math.random() > 0.42;
+      const bed = { id:i+1, type: types[i % types.length], occupied };
+      if(occupied){
+        bed.patientName = MOCK_PATIENTS[Math.floor(Math.random()*MOCK_PATIENTS.length)];
+        bed.admittedOn = daysAgoISO(Math.floor(Math.random()*6)+1);
+        bed.doctor = randomDoctorFor(hospital).name;
+      }
+      arr.push(bed);
+    }
+    beds[w.name] = arr;
+  });
+  return beds;
+}
+function ensureHospitalBeds(hospital){
+  if(!state.bedsByHospital[hospital.id]){
+    state.bedsByHospital[hospital.id] = seedBeds(hospital);
+  }
+  return state.bedsByHospital[hospital.id];
+}
+function currentDepts(){ return state.selectedHospital ? state.selectedHospital.departments : []; }
+function currentBeds(){ return state.selectedHospital ? state.bedsByHospital[state.selectedHospital.id] : {}; }
+
+async function saveUsers(){ lsSet(LS_KEYS.users, state.users); }
+async function saveTokens(){ lsSet(LS_KEYS.tokens, state.tokens); }
+async function saveBeds(){ lsSet(LS_KEYS.beds, state.bedsByHospital); }
+async function saveSession(){ lsSet(LS_KEYS.session, state.currentUser); }
+async function clearSession(){ lsSet(LS_KEYS.session, null); }
+async function saveSelectedHospital(){ lsSet(LS_KEYS.hospital, state.selectedHospital ? state.selectedHospital.id : null); }
+async function saveSelectedCity(){ lsSet(LS_KEYS.city, state.selectedCity); }
+
+/* ==================================================================
+   TOAST
+================================================================== */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ==================================================================
+   NOTIFICATIONS
+================================================================== */
+function addNotification(text, icon){
+  state.notifications.unshift({id:'n'+Date.now()+Math.random().toString(36).slice(2,6), text, icon: icon||'🔔', at: new Date().toISOString(), read:false});
+  if(state.notifications.length > 40) state.notifications.length = 40;
+  updateNotifBadge();
+  renderNotifPanel();
+}
+function updateNotifBadge(){
+  const badge = document.getElementById('notif-badge');
+  if(!badge) return;
+  const unread = state.notifications.filter(n=>!n.read).length;
+  if(unread>0){ badge.textContent = unread>9?'9+':unread; badge.style.display='flex'; }
+  else{ badge.style.display='none'; }
+}
+function renderNotifPanel(){
+  const panel = document.getElementById('notif-panel');
+  if(!panel || !panel.classList.contains('open')) return;
+  const unreadCount = state.notifications.filter(n=>!n.read).length;
+  panel.innerHTML = `
+    <div class="notif-head">
+      <b>Notifications ${unreadCount>0?`(${unreadCount} new)`:''}</b>
+      <div class="notif-head-actions">
+        ${unreadCount>0?'<button onclick="markAllNotifsRead()">Mark all read</button>':''}
+        ${state.notifications.length>0?'<button onclick="clearAllNotifs()">Clear all</button>':''}
+      </div>
+    </div>
+    ${state.notifications.length ? state.notifications.map(n=>`
+      <div class="notif-item ${n.read?'':'unread'}">
+        <span class="notif-ic">${n.icon}</span>
+        <div class="notif-body">
+          <div style="font-size:12.5px;">${n.text}</div>
+          <div style="font-size:11px; color:var(--ink-soft); margin-top:2px;">${timeAgo(n.at)}</div>
+        </div>
+        <button class="notif-dismiss" title="Dismiss" onclick="dismissNotif('${n.id}')">✕</button>
+      </div>`).join('') : `<div style="padding:24px; text-align:center; font-size:12.5px; color:var(--ink-soft);">🔕 No notifications yet.</div>`}
+  `;
+}
+function toggleNotifPanel(){
+  const panel = document.getElementById('notif-panel');
+  const isOpen = panel.classList.toggle('open');
+  if(isOpen) renderNotifPanel();
+}
+function markAllNotifsRead(){
+  state.notifications.forEach(n=>n.read=true);
+  updateNotifBadge();
+  renderNotifPanel();
+}
+function dismissNotif(id){
+  state.notifications = state.notifications.filter(n=>n.id!==id);
+  updateNotifBadge();
+  renderNotifPanel();
+}
+function clearAllNotifs(){
+  state.notifications = [];
+  updateNotifBadge();
+  renderNotifPanel();
+}
+function timeAgo(iso){
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const mins = Math.floor(diff/60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return mins + ' min ago';
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return hrs + ' hr ago';
+  return Math.floor(hrs/24) + ' day(s) ago';
+}
+
+/* ==================================================================
+   AUTH
+================================================================== */
+function setAuthTab(which){
+  document.getElementById('tab-login').classList.toggle('active', which==='login');
+  document.getElementById('tab-signup').classList.toggle('active', which==='signup');
+  document.getElementById('login-form').classList.toggle('hidden', which!=='login');
+  document.getElementById('signup-form').classList.toggle('hidden', which!=='signup');
+  document.getElementById('auth-error').style.display='none';
+}
+function showAuthError(msg){
+  const e = document.getElementById('auth-error');
+  e.textContent = msg; e.style.display='block';
+}
+
+async function handleSignup(){
+  try{
+    const name = document.getElementById('su-name').value.trim();
+    const email = document.getElementById('su-email').value.trim().toLowerCase();
+    const phone = document.getElementById('su-phone').value.trim();
+    const password = document.getElementById('su-password').value;
+
+    if(!name || !email || !phone || !password){
+      showAuthError('Please fill in every field.');
+      return false;
+    }
+    if(state.users.find(u=>u.email===email)){
+      showAuthError('An account with this email already exists — please log in instead.');
+      setAuthTab('login');
+      document.getElementById('login-email').value = email;
+      return false;
+    }
+    const user = {name, email, phone, password, role: 'patient', registeredAt: new Date().toISOString()};
+    state.users.push(user);
+    await saveUsers();
+    state.currentUser = {name, email, role:user.role};
+    await saveSession();
+    toast('Account created — welcome, ' + name.split(' ')[0] + '!');
+    enterApp();
+  }catch(err){
+    console.error('Signup error:', err);
+    showAuthError('Something went wrong creating the account: ' + err.message);
+  }
+  return false;
+}
+
+async function handleLogin(){
+  try{
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+    if(!email || !password){
+      showAuthError('Please enter both email and password.');
+      return false;
+    }
+    const user = state.users.find(u=>u.email===email);
+    if(!user){
+      showAuthError('No account found with this email. Create one first.');
+      setAuthTab('signup');
+      document.getElementById('su-email').value = email;
+      return false;
+    }
+    if(user.password !== password){
+      showAuthError('Incorrect password. Please try again.');
+      return false;
+    }
+    state.currentUser = {name:user.name, email:user.email, role:user.role};
+    await saveSession();
+    toast('Welcome back, ' + user.name.split(' ')[0] + '!');
+    enterApp();
+  }catch(err){
+    console.error('Login error:', err);
+    showAuthError('Something went wrong logging in: ' + err.message);
+  }
+  return false;
+}
+
+async function handleLogout(){
+  state.currentUser = null;
+  await clearSession();
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('main-app').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+  setAuthTab('login');
+}
+
+function enterApp(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  const m = document.getElementById('main-app');
+  m.classList.remove('hidden');
+  m.style.display='flex';
+  document.getElementById('side-name').textContent = state.currentUser.name;
+  document.getElementById('side-email').textContent = state.currentUser.email;
+  document.getElementById('side-avatar').textContent = state.currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('nav-admin').style.display = state.currentUser.role==='staff' ? 'flex' : 'none';
+  updateNotifBadge();
+  updateHospitalBadge();
+  goPage(state.selectedHospital ? 'home' : (state.selectedCity ? 'hospitals' : 'cities'));
+}
+
+async function selectCity(city){
+  state.selectedCity = city;
+  await saveSelectedCity();
+  goPage('hospitals');
+}
+
+async function selectHospital(id){
+  const h = HOSPITALS.find(h=>h.id===id);
+  if(!h) return;
+  state.selectedHospital = h;
+  state.selectedCity = h.city;
+  ensureHospitalBeds(h);
+  await saveBeds();
+  await saveSelectedHospital();
+  await saveSelectedCity();
+  updateHospitalBadge();
+  addNotification(`Switched to ${h.name}.`, '🏥');
+  toast('Now viewing ' + h.name);
+  if(state.pendingDoctorSearchTerm){
+    state.doctorSearch = state.pendingDoctorSearchTerm;
+    state.pendingDoctorSearchTerm = null;
+    goPage('doctors');
+  } else {
+    goPage('home');
+  }
+}
+
+function updateHospitalBadge(){
+  const el = document.getElementById('current-hospital-name');
+  if(el) el.textContent = state.selectedHospital ? state.selectedHospital.name : (state.selectedCity ? 'Choose a hospital in ' + state.selectedCity : 'No hospital selected');
+}
+
+/* ==================================================================
+   ROUTER
+================================================================== */
+const PAGE_META = {
+  cities:    {title:'Select City', sub:'Choose your city to see nearby hospitals'},
+  hospitals: {title:'Select a Hospital', sub:'Choose a hospital to continue'},
+  symptomChecker: {title:'Symptom Checker', sub:'Select your symptoms to see possible conditions'},
+  home:      {title:'Home', sub:"Overview of today's hospital flow"},
+  doctors:   {title:'Find a Doctor', sub:'Browse specialists, timings and fees'},
+  book:      {title:'Book Appointment', sub:'Patient details, doctor, date & time slot'},
+  slip:      {title:'Appointment Slip', sub:'Printable confirmation for your visit'},
+  queue:     {title:'My Queue', sub:'Live position and estimated wait'},
+  beds:      {title:'Bed Availability', sub:'Department-wise live ward occupancy'},
+  location:  {title:'Hospital Location', sub:'Map, directions, distance and nearby hospitals'},
+  emergency: {title:'Emergency Contact', sub:'24x7 helpline, ambulance and location'},
+  about:     {title:'About Hospital', sub:'Facilities, patient stories and contact'},
+  reports:   {title:'Reports', sub:'Download queue and visit data'},
+  dashboard: {title:'Hospital Dashboard', sub:'Patient flow, workload and peak hours'},
+  users:     {title:'Registered Users', sub:'Everyone who has signed up or logged in'},
+  workflow:  {title:'Workflow', sub:'How a visit moves through MediQueue'},
+  admin:     {title:'Admin Panel', sub:'Manage doctors and ward capacity'}
+};
+
+const HOSPITAL_SCOPED_PAGES = ['home','doctors','book','beds','about','emergency','admin','dashboard','location'];
+function goPage(page){
+  if(page==='hospitals' && !state.selectedCity){
+    page = 'cities';
+  }
+  if(HOSPITAL_SCOPED_PAGES.includes(page) && !state.selectedHospital){
+    toast('Please select a hospital first.');
+    page = state.selectedCity ? 'hospitals' : 'cities';
+  }
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('page-title').textContent = PAGE_META[page].title;
+  document.getElementById('page-subtitle').textContent = PAGE_META[page].sub;
+  const c = document.getElementById('page-content');
+  c.innerHTML = RENDER[page]();
+  if(page==='book') initBookPage();
+  if(page==='location') calculateDistanceToHospital();
+}
+
+function calculateDistanceToHospital(){
+  const line = document.getElementById('distance-line');
+  if(!line || !state.selectedHospital) return;
+  if(!navigator.geolocation){
+    line.textContent = '📏 Distance unavailable — geolocation not supported in this browser.';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const d = haversineKm(pos.coords.latitude, pos.coords.longitude, state.selectedHospital.lat, state.selectedHospital.lng);
+      const el = document.getElementById('distance-line');
+      if(el) el.textContent = `📏 Approximately ${d.toFixed(1)} km from your current location.`;
+    },
+    ()=>{
+      const el = document.getElementById('distance-line');
+      if(el) el.textContent = '📏 Distance unavailable — enable location access to see how far this hospital is.';
+    },
+    {timeout:6000}
+  );
+}
+
+/* ==================================================================
+   LIVE QUEUE SIMULATION — every few seconds the front-of-line token
+   for a random doctor is marked consulted, so the queue visibly moves
+   during a live demo, exactly like a real hospital display would.
+================================================================== */
+function startLiveSimulation(){
+  setInterval(async ()=>{
+    if(!state.currentUser) return;
+    const waiting = state.tokens.filter(t=>t.status==='waiting');
+    if(waiting.length===0) return;
+    // advance the oldest-booked waiting token
+    waiting.sort((a,b)=> new Date(a.bookedAt)-new Date(b.bookedAt));
+    const t = waiting[0];
+    t.status = 'done';
+
+    // notify other waiting patients (of the same doctor) that their position moved up
+    const sameDoctorWaiting = state.tokens.filter(x=>x.status==='waiting' && x.doctor===t.doctor && x.patientEmail===state.currentUser.email);
+    sameDoctorWaiting.forEach(myTok=>{
+      const aheadCount = state.tokens.filter(x=>x.doctor===myTok.doctor && x.status==='waiting' && x.position < myTok.position).length;
+      addNotification(`Your queue position for ${myTok.tokenNo} moved up — ${aheadCount} patient(s) ahead now.`, '📶');
+    });
+
+    await saveTokens();
+    if(t.patientEmail===state.currentUser.email){
+      toast('Your token ' + t.tokenNo + ' has been called!');
+      addNotification(`Your token ${t.tokenNo} has been called — please proceed to ${t.dept}.`, '📣');
+    } else {
+      addNotification(`Token ${t.tokenNo} (${t.dept}) has been called.`, '📣');
+    }
+    if(currentPage==='home' || currentPage==='queue' || currentPage==='dashboard'){
+      goPage(currentPage);
+    }
+  }, 9000);
+}
+
+/* ==================================================================
+   RENDER FUNCTIONS
+================================================================== */
+const RENDER = {
+
+  cities(){
+    const CITY_EMOJI = {'Nagpur':'🏙','Pune':'🌆','Mumbai':'🌇'};
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card" style="background:linear-gradient(180deg, rgba(63,224,200,.05), transparent 60%);">
+          <h2 class="section-title">Choose Your City</h2>
+          <div class="section-sub">Select a city to see its top hospitals on MediQueue.</div>
+        </div>
+
+        <div class="card hospital-card" onclick="goPage('symptomChecker')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:var(--accent-dim); border:1px solid rgba(92,180,221,.3);">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="font-size:28px;">🩺</div>
+            <div>
+              <h4 style="font-size:15.5px;">Not sure which doctor to see?</h4>
+              <div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">Use our Symptom Checker to get a general idea of what might be going on, and which specialist to consult.</div>
+            </div>
+          </div>
+          <button class="btn btn-accent btn-sm">Check My Symptoms →</button>
+        </div>
+
+        <div class="grid g3">
+          ${CITIES.map(city=>{
+            const hospitalCount = HOSPITALS.filter(h=>h.city===city).length;
+            const doctorCount = HOSPITALS.filter(h=>h.city===city).reduce((s,h)=>s+h.departments.reduce((s2,d)=>s2+d.doctors.length,0),0);
+            return `
+            <div class="card hospital-card" onclick="selectCity('${city}')" style="cursor:pointer; text-align:center; padding:28px 16px;">
+              <div style="font-size:32px;">${CITY_EMOJI[city]||'🏙'}</div>
+              <h4 style="font-size:16px; margin-top:10px;">${city}</h4>
+              <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">${hospitalCount} hospitals · ${doctorCount}+ doctors</div>
+              <button class="btn btn-primary btn-sm" style="margin-top:14px;">Select City →</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  hospitals(){
+    const city = state.selectedCity;
+    const list = HOSPITALS.filter(h=>h.city===city);
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card" style="background:linear-gradient(180deg, rgba(63,224,200,.05), transparent 60%); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 class="section-title" style="margin-bottom:2px;">${city} — Top Hospitals</h2>
+            <div class="section-sub" style="margin-bottom:0;">Select a hospital to view its live bed availability, doctors and book an appointment.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="goPage('cities')">🔄 Change City</button>
+        </div>
+        <div class="grid g3">
+          ${list.map((h,i)=>{
+            const totalDoctors = h.departments.reduce((s,d)=>s+d.doctors.length,0);
+            return `
+            <div class="card hospital-card" onclick="selectHospital('${h.id}')" style="cursor:pointer; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="user-avatar" style="width:42px; height:42px; font-size:14px; background:var(--accent);">${i+1}</div>
+                <div>
+                  <h4 style="font-size:14.5px; line-height:1.3;">${h.name}</h4>
+                  <span style="font-size:11.5px; color:var(--ink-soft);">${h.city}</span>
+                </div>
+              </div>
+              <div style="font-size:12px; color:var(--ink-soft); line-height:1.6;">📍 ${h.address}</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                <span class="tag tag-success">${totalDoctors} Doctors</span>
+                <span class="tag tag-warn">${h.departments.length} Departments</span>
+              </div>
+              <button class="btn btn-primary btn-sm" style="margin-top:6px;">Select Hospital →</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  symptomChecker(){
+    const search = (state.symptomSearch||'').toLowerCase();
+    const visibleSymptoms = search ? ALL_SYMPTOMS.filter(s=>s.toLowerCase().includes(search)) : ALL_SYMPTOMS;
+    const selected = state.selectedSymptoms;
+
+    let results = [];
+    if(selected.length > 0){
+      results = DISEASES.map(d=>{
+        const matched = d.symptomList.filter(s=>selected.includes(s));
+        return {...d, matchCount: matched.length, matched, pct: Math.round((matched.length/d.symptomList.length)*100)};
+      }).filter(d=>d.matchCount>0)
+        .sort((a,b)=> b.matchCount-a.matchCount || b.pct-a.pct)
+        .slice(0,6);
+    }
+
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card" style="background:var(--warn-dim); border:1px solid rgba(240,192,92,.3);">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <span style="font-size:18px;">⚠️</span>
+            <div style="font-size:12.5px; color:var(--ink-soft); line-height:1.6;">
+              <b style="color:var(--warn);">This is not a medical diagnosis.</b> It's a general guide based on common symptom patterns, meant to help you decide which specialist to consult. Always see a doctor for an accurate diagnosis — especially for severe, sudden, or worsening symptoms.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Select Your Symptoms</h2>
+          <div class="section-sub">Choose everything that applies. We'll match them against common patterns.</div>
+          <input type="text" id="symptom-search" placeholder="🔍 Search symptoms (e.g. fever, cough, joint pain)…" value="${state.symptomSearch||''}" style="width:100%; padding:11px 14px; border-radius:9px; border:1.5px solid var(--border); background:#0B1A16; color:var(--ink); font-size:14px; margin-bottom:14px;">
+          <div style="display:flex; flex-wrap:wrap; gap:8px; max-height:280px; overflow-y:auto; padding:2px;">
+            ${visibleSymptoms.map(s=>`
+              <label class="symptom-chip ${selected.includes(s)?'active':''}">
+                <input type="checkbox" data-symptom="${s.replace(/"/g,'&quot;')}" ${selected.includes(s)?'checked':''} style="display:none;">
+                ${s}
+              </label>`).join('') || `<div style="color:var(--ink-soft); font-size:13px;">No symptoms match "${state.symptomSearch}".</div>`}
+          </div>
+          ${selected.length>0 ? `<div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:12.5px; color:var(--ink-soft);">${selected.length} symptom(s) selected</span>
+            <button class="btn btn-outline btn-sm" onclick="clearSymptoms()">Clear All</button>
+          </div>` : ''}
+        </div>
+
+        ${selected.length===0 ? '' : (results.length===0 ? `
+          <div class="card" style="text-align:center; padding:30px; color:var(--ink-soft);">No close matches found for this combination — please consult a doctor directly.</div>
+        ` : `
+          <div class="card">
+            <h2 class="section-title">Possible Conditions to Discuss With a Doctor</h2>
+            <div class="section-sub">Ranked by how closely your selected symptoms match. This list is informational, not a diagnosis.</div>
+            <div class="grid" style="grid-template-columns:1fr; gap:12px;">
+              ${results.map(r=>`
+                <div class="card" style="padding:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <h4 style="font-size:15px;">${r.name}</h4>
+                      <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">Typical symptoms: ${r.symptoms}</div>
+                    </div>
+                    <span class="tag ${r.pct>=60?'tag-alert':(r.pct>=35?'tag-warn':'tag-success')}">${r.pct}% match</span>
+                  </div>
+                  <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <span style="font-size:12px; color:var(--ink-soft);">Suggested specialist: <b style="color:var(--primary);">${r.specialty}</b></span>
+                    <button class="btn btn-outline btn-sm" onclick="findDoctorsFor('${r.specialty.replace(/'/g,"\\'")}')">Find ${r.specialty} Doctors →</button>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+        `)}
+      </div>
+    `;
+  },
+
+  home(){
+    const hospTokens = state.tokens.filter(t=>t.hospitalId===state.selectedHospital.id);
+    const activeTokens = hospTokens.filter(t=>t.status==='waiting');
+    const myActive = activeTokens.filter(t=>t.patientEmail===state.currentUser.email);
+    const nowServing = activeTokens.length ? activeTokens[0] : null;
+    const totalDoctors = currentDepts().reduce((s,d)=>s+d.doctors.length,0);
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:22px;">
+
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div style="min-width:0; flex:1 1 240px;">
+            <h2 class="section-title" style="margin-bottom:8px;">${state.selectedHospital.name}</h2>
+            <div style="font-size:13px; color:var(--ink-soft); display:flex; flex-direction:column; gap:4px; min-width:0;">
+              <span style="overflow-wrap:break-word;">📍 ${state.selectedHospital.address}</span>
+              <span style="overflow-wrap:break-word;">📞 ${state.selectedHospital.phone} &nbsp;·&nbsp; ✉ ${state.selectedHospital.email}</span>
+            </div>
+          </div>
+          <div style="background:var(--alert-dim); border:1px solid rgba(240,99,122,.3); border-radius:12px; padding:12px 20px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--alert);">Emergency Helpline</div>
+            <div style="font-family:var(--font-mono); font-size:24px; font-weight:700; color:var(--alert);">${GLOBAL_INFO.emergency}</div>
+          </div>
+        </div>
+
+        <div class="led-board">
+          <div class="led-label">Now Serving</div>
+          <div class="led-row">
+            <div class="led-number">${nowServing ? nowServing.tokenNo : '— — —'}</div>
+            <div style="color:#7FD9C9; font-family:var(--font-mono); font-size:13px;">${nowServing ? nowServing.dept + ' · ' + nowServing.doctor : 'No active tokens right now'}</div>
+          </div>
+          <div class="led-meta">
+            <div><span>Tokens Waiting</span><b>${activeTokens.length}</b></div>
+            <div><span>Your Active Tokens</span><b>${myActive.length}</b></div>
+            <div><span>Departments Open</span><b>${currentDepts().length}</b></div>
+          </div>
+        </div>
+
+        <div class="grid g4">
+          <div class="stat-tile"><div class="top"><span class="ic">🛏</span></div><div class="val">${bedsTotalCount()}</div><div class="lbl">Total beds</div></div>
+          <div class="stat-tile"><div class="top"><span class="ic">✅</span></div><div class="val">${bedsFreeCount()}</div><div class="lbl">Available beds</div></div>
+          <div class="stat-tile"><div class="top"><span class="ic">🩺</span></div><div class="val">${totalDoctors}</div><div class="lbl">Total doctors</div></div>
+          <div class="stat-tile"><div class="top"><span class="ic">🏥</span></div><div class="val">${currentDepts().length}</div><div class="lbl">Departments</div></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Quick links</h2>
+          <div class="section-sub">Jump straight into the most common tasks.</div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="goPage('book')">🎫 Book Appointment</button>
+            <button class="btn btn-outline" onclick="goPage('doctors')">🩺 Find Doctor</button>
+            <button class="btn btn-outline" onclick="goPage('beds')">🛏 Check Bed Status</button>
+            <button class="btn btn-outline" onclick="goPage('location')">📍 Hospital Location</button>
+            <button class="btn btn-outline" onclick="goPage('queue')">⏱ Track My Queue</button>
+            <button class="btn btn-outline" onclick="goPage('reports')">⬇ Download Report</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">How MediQueue works</h2>
+          <div class="section-sub">A quick look — full detail on the Workflow page.</div>
+          ${miniWorkflow()}
+        </div>
+      </div>
+    `;
+  },
+
+  doctors(){
+    const search = (state.doctorSearch||'').toLowerCase();
+    const filtered = currentDepts().map(d=>({
+      ...d,
+      doctors: d.doctors.filter(doc =>
+        !search || doc.name.toLowerCase().includes(search) || d.name.toLowerCase().includes(search))
+    })).filter(d=>d.doctors.length>0);
+
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card">
+          <input type="text" id="doctor-search" placeholder="🔍 Search by doctor name or specialization…" value="${state.doctorSearch||''}" style="width:100%; padding:11px 14px; border-radius:9px; border:1.5px solid var(--border); background:#0B1A16; color:var(--ink); font-size:14px;">
+        </div>
+        ${filtered.length===0 ? `<div class="card" style="text-align:center; padding:40px; color:var(--ink-soft);">No doctors match "${state.doctorSearch}".</div>` : ''}
+        ${filtered.map(d=>`
+          <div class="card">
+            <h2 class="section-title">${d.em} ${d.name}</h2>
+            <div class="section-sub">${d.doctors.length} doctor${d.doctors.length>1?'s':''} in this department.</div>
+            <div class="grid g2">
+              ${d.doctors.map(doc=>`
+                <div class="card" style="display:flex; gap:14px; align-items:flex-start; padding:16px; ${doc.available===false ? 'opacity:.75;' : ''}">
+                  <div class="user-avatar" style="width:52px; height:52px; font-size:17px; flex-shrink:0;">${doc.name.replace('Dr. ','').split(' ').map(x=>x[0]).join('').toUpperCase()}</div>
+                  <div style="flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <h4 style="font-size:15.5px;">${doc.name}</h4>
+                      <span class="tag ${doc.available===false ? 'tag-alert' : 'tag-success'}">${doc.available===false ? 'Busy' : 'Available'}</span>
+                    </div>
+                    <div style="font-size:12.5px; color:var(--primary); font-weight:600; margin-top:2px;">${d.name}</div>
+                    <div style="font-size:12.5px; color:var(--warn); margin-top:6px;">${'★'.repeat(Math.round(doc.rating))}${'☆'.repeat(5-Math.round(doc.rating))} <span style="color:var(--ink-soft);">${doc.rating} (${doc.reviews.length} reviews)</span></div>
+                    <div style="font-size:12.5px; color:var(--ink-soft); margin-top:8px; line-height:1.7;">
+                      🎓 ${doc.qualification}<br>
+                      💼 ${doc.experience} experience<br>
+                      🗓 ${doc.days} · ${doc.timing}<br>
+                      💳 Consultation fee: ${doc.fee}
+                    </div>
+                    <details style="margin-top:10px;">
+                      <summary style="cursor:pointer; font-size:12px; color:var(--accent);">View reviews</summary>
+                      <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                        ${doc.reviews.map(r=>`
+                          <div style="border-left:2px solid var(--border); padding-left:10px;">
+                            <div style="font-size:11.5px; color:var(--warn);">${'★'.repeat(r.stars)}</div>
+                            <div style="font-size:12px; color:var(--ink-soft);">"${r.text}" — <b>${r.author}</b></div>
+                          </div>`).join('')}
+                      </div>
+                    </details>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                      <button class="btn btn-primary btn-sm" ${doc.available===false ? 'disabled style="opacity:.5; cursor:not-allowed;"' : ''} onclick="${doc.available===false ? '' : `quickBook('${d.id}','${doc.id}')`}">${doc.available===false ? 'Currently Busy' : 'Book Appointment'}</button>
+                      ${isStaff() ? `<button class="btn btn-outline btn-sm" onclick="toggleDoctorAvailability('${d.id}','${doc.id}')">Mark ${doc.available===false ? 'Available' : 'Busy'}</button>` : ''}
+                    </div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+    `;
+  },
+
+  book(){
+    const u = state.currentUser;
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card">
+          <h2 class="section-title">Patient Details</h2>
+          <div class="section-sub">Confirm who this appointment is for.</div>
+          <div class="grid g3">
+            <div class="field"><label>Full Name</label><input type="text" id="bk-name" value="${u.name}"></div>
+            <div class="field"><label>Phone Number</label><input type="tel" id="bk-phone" placeholder="98xxxxxxxx"></div>
+            <div class="field"><label>Email</label><input type="email" id="bk-email" value="${u.email}"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Select Department</h2>
+          <div class="section-sub">Choose the department you'd like to visit today.</div>
+          <div class="grid g4" id="dept-grid">
+            ${currentDepts().map(d=>`
+              <div class="dept-card" data-dept="${d.id}" onclick="selectDept('${d.id}')">
+                <div class="em">${d.em}</div>
+                <h4>${d.name}</h4>
+                <span>${d.doctors.length} doctor${d.doctors.length>1?'s':''} available</span>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card" id="doctor-section" style="display:none;">
+          <h2 class="section-title">Select Doctor</h2>
+          <div class="section-sub">Qualification, timing and fee shown per doctor.</div>
+          <div id="doctor-list"></div>
+        </div>
+
+        <div class="card" id="datetime-section" style="display:none;">
+          <h2 class="section-title">Select Date &amp; Time Slot</h2>
+          <div class="section-sub">Pick a preferred date and a time slot within the doctor's timing.</div>
+          <div class="grid g2">
+            <div class="field"><label>Preferred Date</label><input type="date" id="bk-date" min="${new Date().toISOString().slice(0,10)}" value="${new Date().toISOString().slice(0,10)}"></div>
+            <div class="field"><label>Time Slot</label>
+              <select id="bk-slot">
+                <option>9:00 AM – 10:00 AM</option>
+                <option>10:00 AM – 11:00 AM</option>
+                <option>11:00 AM – 12:00 PM</option>
+                <option>2:00 PM – 3:00 PM</option>
+                <option>3:00 PM – 4:00 PM</option>
+                <option>4:00 PM – 5:00 PM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="payment-section" style="display:none;">
+          <h2 class="section-title">Payment &amp; Insurance</h2>
+          <div class="section-sub">Choose how you'd like to pay for this consultation.</div>
+          <div class="field"><label>Payment Method</label>
+            <select id="bk-pay" onchange="onPayMethodChange()">
+              <option>Cash at Hospital</option>
+              <option>UPI</option>
+              <option>Insurance</option>
+            </select>
+          </div>
+          <div id="insurance-fields" style="display:none;">
+            <div class="grid g2">
+              <div class="field"><label>Insurance Provider</label><input type="text" id="bk-ins-provider" placeholder="e.g. Star Health, HDFC Ergo"></div>
+              <div class="field"><label>Policy Number</label><input type="text" id="bk-ins-policy" placeholder="Policy / TPA number"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="confirm-section" style="display:none;">
+          <h2 class="section-title">Confirm Appointment</h2>
+          <div class="section-sub" id="confirm-sub"></div>
+          <button class="btn btn-primary" onclick="confirmBooking()">Confirm &amp; Book Token</button>
+        </div>
+      </div>
+    `;
+  },
+
+  queue(){
+    const mine = state.tokens.filter(t=>t.patientEmail===state.currentUser.email).sort((a,b)=> new Date(b.bookedAt)-new Date(a.bookedAt));
+    if(mine.length===0){
+      return `<div class="card" style="text-align:center; padding:50px 20px;">
+        <div style="font-size:34px;">🎫</div>
+        <h2 class="section-title" style="margin-top:10px;">No tokens yet</h2>
+        <div class="section-sub">Book a token to see your live queue position here.</div>
+        <button class="btn btn-primary" onclick="goPage('book')">Book a Token</button>
+      </div>`;
+    }
+    return `<div class="grid" style="grid-template-columns:1fr; gap:16px;">
+      ${mine.map(t=>{
+        const waitingAhead = state.tokens.filter(x=>x.dept===t.dept && x.doctor===t.doctor && x.status==='waiting' && x.position < t.position).length;
+        const isDone = t.status==='done';
+        return `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <div>
+              <div style="font-family:var(--font-mono); font-size:28px; font-weight:700; color:var(--primary);">${t.tokenNo}</div>
+              <div style="font-size:13.5px; color:var(--ink-soft); margin-top:4px;">${t.hospitalName||''} · ${t.dept} · ${t.doctor}</div>
+              <div style="font-size:12px; color:var(--ink-soft); margin-top:2px;">📅 ${t.appointmentDate||'—'} · ${t.timeSlot||'—'} · 💳 ${t.payMethod||'Cash at Hospital'}</div>
+              <div style="margin-top:8px;">
+                <span class="tag ${isDone?'tag-success':'tag-warn'}">${isDone?'Consultation Complete':'Waiting'}</span>
+              </div>
+            </div>
+            ${!isDone ? `
+            <div style="text-align:right;">
+              <div style="font-size:12px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em;">Position in queue</div>
+              <div style="font-family:var(--font-mono); font-size:24px; font-weight:700;">${waitingAhead+1}</div>
+              <div style="font-size:12px; color:var(--ink-soft); margin-top:2px;">Est. wait ~ ${t.estWait} min</div>
+            </div>` : `<div style="font-size:22px;">✅</div>`}
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
+            <button class="btn btn-outline btn-sm" onclick="viewSlip('${t.id}')">🧾 View / Print Slip</button>
+            ${!isDone ? `
+              <button class="btn btn-outline btn-sm" onclick="startReschedule('${t.id}')">🔄 Reschedule</button>
+              <button class="btn btn-outline btn-sm" style="color:var(--alert); border-color:rgba(240,99,122,.35);" onclick="cancelToken('${t.id}')">❌ Cancel</button>
+              <button class="btn btn-outline btn-sm" onclick="advanceToken('${t.id}')">Simulate: Mark Consulted</button>
+            ` : ''}
+          </div>
+          ${!isDone ? `
+          <div id="resched-${t.id}" style="display:none; margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
+            <div class="grid g2">
+              <div class="field"><label>New Date</label><input type="date" id="resched-date-${t.id}" min="${new Date().toISOString().slice(0,10)}" value="${t.appointmentDate||''}"></div>
+              <div class="field"><label>New Time Slot</label>
+                <select id="resched-slot-${t.id}">
+                  <option>9:00 AM – 10:00 AM</option><option>10:00 AM – 11:00 AM</option><option>11:00 AM – 12:00 PM</option>
+                  <option>2:00 PM – 3:00 PM</option><option>3:00 PM – 4:00 PM</option><option>4:00 PM – 5:00 PM</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="confirmReschedule('${t.id}')">Confirm New Slot</button>
+          </div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  },
+
+  beds(){
+    const wards = Object.keys(currentBeds());
+    const allBeds = wards.flatMap(w=>currentBeds()[w].map(b=>({...b, ward:w})));
+    const totalFree = allBeds.filter(b=>!b.occupied).length;
+    const totalOcc = allBeds.filter(b=>b.occupied).length;
+    const occupancyRate = Math.round((totalOcc/allBeds.length)*100);
+    const filter = state.bedFilter || 'all';
+    const search = (state.bedSearch || '').toLowerCase();
+
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="grid g4">
+          <div class="stat-tile"><div class="top"><span class="ic">🛏</span></div><div class="val">${allBeds.length}</div><div class="lbl">Total capacity</div></div>
+          <div class="stat-tile"><div class="top"><span class="ic">✅</span></div><div class="val" style="color:var(--success);">${totalFree}</div><div class="lbl">Available now</div></div>
+          <div class="stat-tile"><div class="top"><span class="ic">🧑‍🦽</span></div><div class="val" style="color:var(--alert);">${totalOcc}</div><div class="lbl">Occupied</div></div>
+          <div class="stat-tile"><div class="top"><span class="ic">📊</span></div><div class="val">${occupancyRate}%</div><div class="lbl">Occupancy rate</div></div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+            <div>
+              <h2 class="section-title" style="margin-bottom:2px;">Department-wise Bed Availability</h2>
+              <div class="section-sub" style="margin-bottom:0;">Live status per bed — patient, doctor and admission date shown for occupied beds.</div>
+            </div>
+            <input type="text" id="bed-search" placeholder="Search bed no., patient or doctor…" value="${state.bedSearch||''}" style="max-width:260px; padding:9px 12px; border-radius:9px; border:1.5px solid var(--border); background:#0B1A16; color:var(--ink); font-size:13px;">
+          </div>
+          <div style="display:flex; gap:8px; margin:16px 0 4px; flex-wrap:wrap;">
+            <button class="filter-chip ${filter==='all'?'active':''}" data-bedfilter="all">All Beds</button>
+            <button class="filter-chip ${filter==='free'?'active':''}" data-bedfilter="free">Available</button>
+            <button class="filter-chip ${filter==='occ'?'active':''}" data-bedfilter="occ">Occupied</button>
+          </div>
+        </div>
+
+        ${wards.map(w=>{
+          const arr = currentBeds()[w];
+          const free = arr.filter(b=>!b.occupied).length;
+          const pct = Math.round((free/arr.length)*100);
+          let status = 'Available', tagClass = 'tag-success', barColor = 'var(--success)';
+          if(pct===0){ status='Full'; tagClass='tag-alert'; barColor='var(--alert)'; }
+          else if(pct<=30){ status='Limited'; tagClass='tag-warn'; barColor='var(--warn)'; }
+
+          let visibleBeds = arr;
+          if(filter==='free') visibleBeds = visibleBeds.filter(b=>!b.occupied);
+          if(filter==='occ') visibleBeds = visibleBeds.filter(b=>b.occupied);
+          if(search){
+            visibleBeds = visibleBeds.filter(b=>
+              ('b-'+b.id).includes(search) || b.type.toLowerCase().includes(search) ||
+              w.toLowerCase().includes(search) ||
+              (b.patientName||'').toLowerCase().includes(search) || (b.doctor||'').toLowerCase().includes(search));
+          }
+          if(visibleBeds.length===0) return '';
+
+          return `
+          <div class="card ward-row" style="border-bottom:none;">
+            <div class="ward-head">
+              <h4>🏥 ${w}</h4>
+              <div class="cnt" style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:var(--font-mono); font-size:12.5px; color:var(--ink-soft);">${free} / ${arr.length} beds free</span>
+                <span class="tag ${tagClass}">${status}</span>
+              </div>
+            </div>
+            <div style="background:var(--bg); border-radius:8px; height:9px; overflow:hidden; margin-bottom:16px;">
+              <div style="width:${pct}%; background:${barColor}; height:100%; border-radius:8px; transition:width .3s ease;"></div>
+            </div>
+            ${visibleBeds.map(b=>`
+              <div class="bed-row ${b.occupied?'occ':'free'}">
+                <div class="bed-row-left">
+                  <div class="bed-id-badge">B-${b.id}</div>
+                  <div><b>${b.type}</b><span>${w}</span></div>
+                </div>
+                <div class="bed-row-mid">
+                  ${b.occupied
+                    ? `Patient: <b>${b.patientName}</b> · Admitted ${new Date(b.admittedOn).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}<br>Attending: <b>${b.doctor}</b>`
+                    : `<span style="color:var(--success);">Ready for immediate admission</span>`}
+                </div>
+                <div class="bed-row-right">
+                  <span class="tag ${b.occupied?'tag-alert':'tag-success'}">${b.occupied?'Occupied':'Available'}</span>
+                  ${isStaff() ? `<button class="btn btn-outline btn-sm" onclick="toggleBed('${w}',${b.id-1})">${b.occupied?'Discharge':'Admit'}</button>` : ''}
+                </div>
+              </div>`).join('')}
+          </div>`;
+        }).join('') || `<div class="card" style="text-align:center; padding:40px; color:var(--ink-soft);">No beds match your search/filter.</div>`}
+      </div>
+    `;
+  },
+
+  location(){
+    const h = state.selectedHospital;
+    const nearby = HOSPITALS.filter(x=>x.city===h.city && x.id!==h.id)
+      .map(x=>({...x, distance: haversineKm(h.lat,h.lng,x.lat,x.lng)}))
+      .sort((a,b)=>a.distance-b.distance)
+      .slice(0,5);
+    const mapEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${h.lng-0.02}%2C${h.lat-0.015}%2C${h.lng+0.02}%2C${h.lat+0.015}&layer=mapnik&marker=${h.lat}%2C${h.lng}`;
+    const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}`;
+    const bigMapUrl = `https://www.openstreetmap.org/?mlat=${h.lat}&mlon=${h.lng}#map=15/${h.lat}/${h.lng}`;
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card" style="padding:0; overflow:hidden;">
+          <iframe src="${mapEmbedUrl}" style="width:100%; height:320px; border:0; display:block; filter:saturate(0.85) contrast(1.05);" loading="lazy"></iframe>
+        </div>
+
+        <div class="grid g2">
+          <div class="card">
+            <h2 class="section-title">📍 ${h.name}</h2>
+            <div class="section-sub" style="margin-bottom:14px;">${h.address}</div>
+            <div id="distance-line" style="font-size:13px; color:var(--ink-soft); margin-bottom:16px;">📏 Calculating distance from your location…</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <a class="btn btn-primary btn-sm" href="${directionsUrl}" target="_blank" rel="noopener">🧭 Get Directions</a>
+              <a class="btn btn-outline btn-sm" href="${bigMapUrl}" target="_blank" rel="noopener">🗺 View Full Map</a>
+              <a class="btn btn-outline btn-sm" href="tel:${h.phone.replace(/\s/g,'')}">📞 Call Hospital</a>
+            </div>
+          </div>
+          <div class="card" style="background:var(--alert-dim); border:1px solid rgba(240,99,122,.3);">
+            <h2 class="section-title" style="color:var(--alert);">🚨 Emergency &amp; Contact</h2>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
+              <a class="btn btn-primary btn-sm" style="background:var(--alert); justify-content:flex-start;" href="tel:108">☎ Emergency Helpline — 108</a>
+              <a class="btn btn-outline btn-sm" style="justify-content:flex-start;" href="tel:${h.phone.replace(/\s/g,'')}">🏥 Hospital Reception — ${h.phone}</a>
+              <a class="btn btn-outline btn-sm" style="justify-content:flex-start;" href="mailto:${h.email}">✉ ${h.email}</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Nearby Hospitals in ${h.city}</h2>
+          <div class="section-sub">Other MediQueue-listed hospitals close to your current selection.</div>
+          <div class="grid g2">
+            ${nearby.map(x=>`
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border:1px solid var(--border); border-radius:10px; flex-wrap:wrap;">
+                <div style="min-width:0;">
+                  <b style="font-size:13.5px;">${x.name}</b>
+                  <div style="font-size:11.5px; color:var(--ink-soft); margin-top:3px;">📏 ~${x.distance.toFixed(1)} km away</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="selectHospital('${x.id}')">Switch →</button>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  emergency(){
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card" style="text-align:center; padding:40px 20px; background:var(--alert-dim); border:1px solid rgba(240,99,122,.3);">
+          <div style="font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--alert); font-weight:600;">24×7 Emergency Helpline</div>
+          <div style="font-family:var(--font-mono); font-size:56px; font-weight:700; color:var(--alert); margin-top:8px;">${GLOBAL_INFO.emergency}</div>
+          <div style="font-size:13px; color:var(--ink-soft); margin-top:6px;">Call immediately for any medical emergency, day or night.</div>
+        </div>
+        <div class="grid g2">
+          <div class="card">
+            <h2 class="section-title">🚑 Ambulance Service</h2>
+            <div class="section-sub">Free ambulance pickup for emergencies in the city.</div>
+            <div style="font-family:var(--font-mono); font-size:26px; font-weight:700; color:var(--primary);">${GLOBAL_INFO.ambulance}</div>
+          </div>
+          <div class="card">
+            <h2 class="section-title">📍 Hospital Location</h2>
+            <div class="section-sub">${state.selectedHospital.address}</div>
+            <div style="background:var(--bg); border:1px dashed var(--border); border-radius:10px; padding:26px; text-align:center; color:var(--ink-soft); font-size:12.5px;">
+              🗺 Map preview unavailable in this demo — address shown above.
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  about(){
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card">
+          <h2 class="section-title">About ${state.selectedHospital.name}</h2>
+          <div class="section-sub">Serving the community with organized, transparent and efficient care.</div>
+          <p style="font-size:13.5px; color:var(--ink-soft); line-height:1.7;">
+            ${state.selectedHospital.name} combines experienced specialists across ${currentDepts().length} departments with MediQueue's
+            digital token system — so patients spend less time waiting and hospital staff get a clear, real-time view
+            of patient flow, bed occupancy and doctor workload.
+          </p>
+        </div>
+        <div class="card">
+          <h2 class="section-title">Facilities &amp; Services</h2>
+          <div class="grid g2">
+            ${GLOBAL_INFO.facilities.map(f=>`<div style="display:flex; align-items:center; gap:10px; font-size:13.5px; padding:10px 12px; border:1px solid var(--border); border-radius:9px;"><span style="color:var(--success);">✓</span>${f}</div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="section-title">Patient Testimonials</h2>
+          <div class="grid g3">
+            ${GLOBAL_INFO.testimonials.map(t=>`
+              <div class="card" style="padding:16px;">
+                <div style="color:var(--warn); font-size:13px; margin-bottom:8px;">★★★★★</div>
+                <p style="font-size:12.5px; color:var(--ink-soft); line-height:1.6;">"${t.text}"</p>
+                <div style="font-size:12.5px; font-weight:600; margin-top:10px;">— ${t.name}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; background:linear-gradient(180deg, rgba(63,224,200,.04), transparent 60%);">
+          <div>
+            <div style="font-weight:700; font-family:var(--font-display); font-size:15px;">${state.selectedHospital.name}</div>
+            <div style="font-size:12.5px; color:var(--ink-soft); margin-top:4px;">${state.selectedHospital.address}</div>
+            <div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">📞 ${state.selectedHospital.phone} &nbsp;·&nbsp; ✉ ${state.selectedHospital.email}</div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            ${GLOBAL_INFO.social.map(s=>`<span class="tag tag-success" style="padding:8px 14px; font-size:12.5px;">${s.label}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  reports(){
+    return `<div class="grid g2">
+      <div class="card">
+        <h2 class="section-title">Queue &amp; Token Report</h2>
+        <div class="section-sub">All tokens booked in this session — department, doctor, status and wait times.</div>
+        <button class="btn btn-accent" onclick="downloadReport('tokens')">⬇ Download Token Report (.csv)</button>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Bed Occupancy Report</h2>
+        <div class="section-sub">Current ward-wise bed availability snapshot.</div>
+        <button class="btn btn-accent" onclick="downloadReport('beds')">⬇ Download Bed Report (.csv)</button>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Registered Users Report</h2>
+        <div class="section-sub">List of everyone who has created an account.</div>
+        <button class="btn btn-accent" onclick="downloadReport('users')">⬇ Download Users Report (.csv)</button>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Full Summary</h2>
+        <div class="section-sub">A combined plain-text summary of hospital activity.</div>
+        <button class="btn btn-accent" onclick="downloadReport('summary')">⬇ Download Summary (.txt)</button>
+      </div>
+    </div>`;
+  },
+
+  dashboard(){
+    const hospTokens = state.tokens.filter(t=>t.hospitalId===state.selectedHospital.id);
+    const byDept = currentDepts().map(d=>({
+      name:d.name,
+      count: hospTokens.filter(t=>t.dept===d.name).length
+    }));
+    const maxCount = Math.max(1, ...byDept.map(d=>d.count));
+    const hourBuckets = ['8-9','9-10','10-11','11-12','12-1','1-2','2-3','3-4','4-5','5-6'];
+    const hourCounts = [3,9,7,5,4,2,6,8,10,4];
+    const maxHour = Math.max(...hourCounts);
+    const busiestIdx = hourCounts.indexOf(maxHour);
+    return `
+      <div class="grid g3" style="margin-bottom:18px;">
+        <div class="stat-tile"><div class="top"><span class="ic">🎫</span></div><div class="val">${hospTokens.length}</div><div class="lbl">Total tokens issued</div></div>
+        <div class="stat-tile"><div class="top"><span class="ic">🛏</span></div><div class="val">${bedsFreeCount()}/${bedsTotalCount()}</div><div class="lbl">Beds free / total</div></div>
+        <div class="stat-tile"><div class="top"><span class="ic">👥</span></div><div class="val">${state.users.length}</div><div class="lbl">Registered patients</div></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <h2 class="section-title">Patient Load by Department</h2>
+        <div class="section-sub">Doctor workload at a glance.</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${byDept.map(d=>`
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>${d.name}</span><span style="font-family:var(--font-mono); color:var(--ink-soft);">${d.count}</span></div>
+              <div style="background:var(--bg); border-radius:8px; height:10px; overflow:hidden;">
+                <div style="width:${(d.count/maxCount)*100}%; background:var(--accent); height:100%; border-radius:8px;"></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Peak Hours — Appointment Volume</h2>
+        <div class="section-sub">Busiest window today: <b style="color:var(--warn);">${hourBuckets[busiestIdx]}</b></div>
+        <div style="display:flex; align-items:flex-end; gap:8px; height:140px; padding-top:10px;">
+          ${hourCounts.map((c,i)=>`
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end;">
+              <span style="font-size:10.5px; color:var(--ink-soft); font-family:var(--font-mono);">${c}</span>
+              <div style="width:100%; height:${(c/maxHour)*100}%; background:${i===busiestIdx?'var(--warn)':'var(--primary-dim)'}; border:1px solid ${i===busiestIdx?'var(--warn)':'var(--border)'}; border-radius:5px 5px 0 0;"></div>
+              <span style="font-size:10px; color:var(--ink-soft);">${hourBuckets[i]}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  users(){
+    return `<div class="card">
+      <h2 class="section-title">Registered Users</h2>
+      <div class="section-sub">Everyone who has signed up or logged in on this device — ${state.users.length} total.</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Registered</th></tr></thead>
+        <tbody>
+          ${state.users.map(u=>`
+            <tr>
+              <td>${u.name}</td>
+              <td>${u.email}</td>
+              <td>${u.phone||'—'}</td>
+              <td><span class="tag ${u.role==='staff'?'tag-alert':'tag-success'}">${u.role}</span></td>
+              <td>${new Date(u.registeredAt).toLocaleString()}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  },
+
+  slip(){
+    const t = state.lastBookedToken;
+    if(!t){
+      return `<div class="card" style="text-align:center; padding:50px 20px;">
+        <div style="font-size:34px;">🧾</div>
+        <h2 class="section-title" style="margin-top:10px;">No slip to show</h2>
+        <div class="section-sub">Book an appointment first, or open a slip from My Queue.</div>
+        <button class="btn btn-primary" onclick="goPage('book')">Book Appointment</button>
+      </div>`;
+    }
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:16px; max-width:640px;">
+        <div class="card" id="printable-slip" style="border:1.5px dashed var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px dashed var(--border); padding-bottom:14px; margin-bottom:14px;">
+            <div>
+              <div style="font-family:var(--font-display); font-weight:700; font-size:17px; color:var(--primary);">${state.selectedHospital.name}</div>
+              <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">${state.selectedHospital.address}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; text-transform:uppercase; color:var(--ink-soft);">Token No.</div>
+              <div style="font-family:var(--font-mono); font-size:22px; font-weight:700; color:var(--primary);">${t.tokenNo}</div>
+            </div>
+          </div>
+          <div class="grid g2" style="font-size:13px;">
+            <div><span style="color:var(--ink-soft);">Patient Name</span><br><b>${t.patientName}</b></div>
+            <div><span style="color:var(--ink-soft);">Phone</span><br><b>${t.patientPhone||'—'}</b></div>
+            <div><span style="color:var(--ink-soft);">Department</span><br><b>${t.dept}</b></div>
+            <div><span style="color:var(--ink-soft);">Doctor</span><br><b>${t.doctor}</b></div>
+            <div><span style="color:var(--ink-soft);">Date</span><br><b>${t.appointmentDate||'—'}</b></div>
+            <div><span style="color:var(--ink-soft);">Time Slot</span><br><b>${t.timeSlot||'—'}</b></div>
+            <div><span style="color:var(--ink-soft);">Payment Method</span><br><b>${t.payMethod||'Cash at Hospital'}</b></div>
+            <div><span style="color:var(--ink-soft);">Status</span><br><b>${t.status==='done'?'Completed':'Waiting'}</b></div>
+          </div>
+          <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border); display:flex; align-items:center; justify-content:space-between;">
+            <div style="font-family:var(--font-mono); letter-spacing:4px; font-size:11px; color:var(--ink-soft);">▮▯▮▮▯▮▯▮▮▯▮▯▯▮▮▮▯▮▯▮</div>
+            <div style="font-size:11px; color:var(--ink-soft);">Booked ${new Date(t.bookedAt).toLocaleString()}</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <button class="btn btn-primary" onclick="window.print()">🖨 Print Slip</button>
+          <button class="btn btn-outline" onclick="goPage('queue')">Back to My Queue</button>
+        </div>
+      </div>
+    `;
+  },
+
+  admin(){
+    const wards = Object.keys(currentBeds());
+    return `
+      <div class="grid" style="grid-template-columns:1fr; gap:20px;">
+        <div class="card">
+          <h2 class="section-title">Add a New Doctor</h2>
+          <div class="section-sub">Adds instantly to the Find Doctor and Book Appointment lists.</div>
+          <div class="grid g3">
+            <div class="field"><label>Department</label>
+              <select id="ad-dept">${currentDepts().map(d=>`<option value="${d.id}">${d.name}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Doctor Name</label><input type="text" id="ad-name" placeholder="Dr. First Last"></div>
+            <div class="field"><label>Qualification</label><input type="text" id="ad-qual" placeholder="MBBS, MD"></div>
+            <div class="field"><label>Experience</label><input type="text" id="ad-exp" placeholder="e.g. 8 yrs"></div>
+            <div class="field"><label>Available Days</label><input type="text" id="ad-days" placeholder="Mon–Sat"></div>
+            <div class="field"><label>Timing</label><input type="text" id="ad-timing" placeholder="9:00 AM – 1:00 PM"></div>
+            <div class="field"><label>Consultation Fee</label><input type="text" id="ad-fee" placeholder="₹500"></div>
+            <div class="field"><label>Avg. Consult Time (min)</label><input type="number" id="ad-avg" value="10"></div>
+          </div>
+          <button class="btn btn-primary" onclick="addDoctor()">+ Add Doctor</button>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Manage Doctors</h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Name</th><th>Department</th><th>Rating</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${currentDepts().flatMap(d=>d.doctors.map(doc=>`
+                <tr>
+                  <td>${doc.name}</td>
+                  <td>${d.name}</td>
+                  <td>${doc.rating} ★</td>
+                  <td><span class="tag ${doc.available===false?'tag-alert':'tag-success'}">${doc.available===false?'Busy':'Available'}</span></td>
+                  <td style="display:flex; gap:6px;">
+                    <button class="btn btn-outline btn-sm" onclick="toggleDoctorAvailability('${d.id}','${doc.id}')">Mark ${doc.available===false?'Available':'Busy'}</button>
+                    <button class="btn btn-outline btn-sm" style="color:var(--alert);" onclick="removeDoctor('${d.id}','${doc.id}')">Remove</button>
+                  </td>
+                </tr>`)).join('')}
+            </tbody>
+          </table></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Manage Ward Capacity</h2>
+          <div class="section-sub">Add or remove beds from a ward's total capacity.</div>
+          <div class="grid g2">
+            ${wards.map(w=>`
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid var(--border); border-radius:10px;">
+                <div><b>${w}</b><div style="font-size:12px; color:var(--ink-soft);">${currentBeds()[w].length} total beds</div></div>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-outline btn-sm" onclick="adjustWardBeds('${w}',-1)">−</button>
+                  <button class="btn btn-outline btn-sm" onclick="adjustWardBeds('${w}',1)">+</button>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  workflow(){
+    return `<div class="card">
+      <h2 class="section-title">End-to-end Patient Workflow</h2>
+      <div class="section-sub">Every visit moves through these steps, in order.</div>
+      ${fullWorkflow()}
+    </div>`;
+  }
+};
+
+function miniWorkflow(){
+  const steps = [
+    {n:1, t:'Sign Up / Log In', d:'Patient creates an account or logs in directly.'},
+    {n:2, t:'Book Token', d:'Pick department, doctor and get a live token.'},
+    {n:3, t:'Track Queue', d:'Watch position and wait time update live.'},
+    {n:4, t:'Consultation', d:'Get called and seen by the doctor.'}
+  ];
+  return `<div class="flow-wrap">${steps.map((s,i)=>`
+    <div class="flow-step"><div class="card"><div class="num">STEP ${s.n}</div><h4>${s.t}</h4><p>${s.d}</p></div></div>
+    ${i<steps.length-1?'<div class="flow-arrow">→</div>':''}`).join('')}</div>`;
+}
+
+function fullWorkflow(){
+  const steps = [
+    {n:1, t:'Register or Log In', d:'New patients create an account with name, email and phone. Returning patients log in directly — no need to sign up twice.'},
+    {n:2, t:'Select Department & Doctor', d:'Patient browses departments, sees doctor availability and average consultation time before choosing.'},
+    {n:3, t:'Book Digital Token', d:'A token number is generated instantly with an estimated wait time based on current queue length and consultation duration.'},
+    {n:4, t:'Track Live Queue', d:'Patient watches their queue position update in real time from the My Queue page — no need to sit in the waiting room.'},
+    {n:5, t:'Get Notified', d:'As the queue moves, the patient sees their position drop and knows when to arrive at the department.'},
+    {n:6, t:'Consultation', d:'Doctor consults the patient; token is marked complete and workload data feeds the hospital dashboard.'},
+    {n:7, t:'Bed / Admission Check', d:'If admission is needed, staff check live bed availability by ward before assigning one.'},
+    {n:8, t:'Reports & Records', d:'Hospital staff download queue, bed and user reports for record-keeping and workflow analysis.'}
+  ];
+  return `<div class="flow-wrap">${steps.map((s,i)=>`
+    <div class="flow-step"><div class="card"><div class="num">STEP ${s.n}</div><h4>${s.t}</h4><p>${s.d}</p></div></div>
+    ${i<steps.length-1?'<div class="flow-arrow">→</div>':''}`).join('')}</div>`;
+}
+
+/* ==================================================================
+   HELPERS
+================================================================== */
+function bedsFreeCount(){ return Object.values(currentBeds()).flat().filter(b=>!b.occupied).length; }
+function bedsTotalCount(){ return Object.values(currentBeds()).flat().length; }
+function avgWait(){
+  const w = state.tokens.filter(t=>t.status==='waiting');
+  if(!w.length) return 0;
+  return Math.round(w.reduce((s,t)=>s+t.estWait,0)/w.length);
+}
+
+/* ---------- Book flow ---------- */
+function initBookPage(){
+  state.selectedDept=null; state.selectedDoc=null;
+  if(state.pendingBookDept){ selectDept(state.pendingBookDept); }
+  if(state.pendingBookDoc){ selectDoc(state.pendingBookDoc); }
+  state.pendingBookDept=null; state.pendingBookDoc=null;
+}
+
+function quickBook(deptId, docId){
+  state.pendingBookDept = deptId;
+  state.pendingBookDoc = docId;
+  goPage('book');
+}
+
+function selectDept(id){
+  state.selectedDept = currentDepts().find(d=>d.id===id);
+  state.selectedDoc = null;
+  document.querySelectorAll('.dept-card').forEach(c=>c.classList.toggle('selected', c.dataset.dept===id));
+  const sec = document.getElementById('doctor-section');
+  sec.style.display='block';
+  document.getElementById('doctor-list').innerHTML = state.selectedDept.doctors.map(doc=>{
+    const waiting = state.tokens.filter(t=>t.doctor===doc.name && t.status==='waiting').length;
+    const busy = doc.available===false;
+    return `<div class="doc-row ${busy?'':''}" data-doc="${doc.id}" style="${busy?'opacity:.6; cursor:not-allowed;':''}" ${busy?'':`onclick="selectDoc('${doc.id}')"`}>
+      <div class="info">
+        <b>${doc.name} ${busy?'<span class=\"tag tag-alert\" style=\"margin-left:6px;\">Busy</span>':''}</b>
+        <span>${doc.qualification} · ${doc.experience} experience</span>
+        <span>🗓 ${doc.days} · ${doc.timing} · 💳 ${doc.fee} · ${waiting} waiting</span>
+      </div>
+      <button class="btn btn-outline btn-sm" ${busy?'disabled style="opacity:.5;"':''}>${busy?'Unavailable':'Select'}</button>
+    </div>`;
+  }).join('');
+  document.getElementById('datetime-section').style.display='none';
+  document.getElementById('confirm-section').style.display='none';
+  sec.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function selectDoc(id){
+  const target = state.selectedDept.doctors.find(d=>d.id===id);
+  if(target && target.available===false){ toast('This doctor is currently busy. Please choose another.'); return; }
+  state.selectedDoc = target;
+  document.querySelectorAll('.doc-row').forEach(r=>r.classList.toggle('selected', r.dataset.doc===id));
+  document.getElementById('datetime-section').style.display='block';
+  document.getElementById('payment-section').style.display='block';
+  updateConfirmSummary();
+  document.getElementById('confirm-section').style.display='block';
+  document.getElementById('datetime-section').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function onPayMethodChange(){
+  const val = document.getElementById('bk-pay').value;
+  document.getElementById('insurance-fields').style.display = (val==='Insurance') ? 'block' : 'none';
+}
+
+function updateConfirmSummary(){
+  const dept = state.selectedDept, doc = state.selectedDoc;
+  if(!dept || !doc) return;
+  const waiting = state.tokens.filter(t=>t.doctor===doc.name && t.status==='waiting').length;
+  const estWait = waiting * doc.avg;
+  const dateEl = document.getElementById('bk-date');
+  const slotEl = document.getElementById('bk-slot');
+  const dateStr = dateEl ? new Date(dateEl.value).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
+  const slot = slotEl ? slotEl.value : '';
+  document.getElementById('confirm-sub').textContent =
+    `${dept.name} · ${doc.name} on ${dateStr}, ${slot} — ${waiting} patient(s) ahead today, estimated wait ~${estWait} min.`;
+}
+
+async function confirmBooking(){
+  const dept = state.selectedDept, doc = state.selectedDoc;
+  if(!dept || !doc) return;
+  const name = (document.getElementById('bk-name').value || state.currentUser.name).trim();
+  const phone = document.getElementById('bk-phone').value.trim();
+  const email = (document.getElementById('bk-email').value || state.currentUser.email).trim();
+  const date = document.getElementById('bk-date').value;
+  const slot = document.getElementById('bk-slot').value;
+  const payMethod = document.getElementById('bk-pay').value;
+  const insProvider = document.getElementById('bk-ins-provider') ? document.getElementById('bk-ins-provider').value.trim() : '';
+  const insPolicy = document.getElementById('bk-ins-policy') ? document.getElementById('bk-ins-policy').value.trim() : '';
+  if(!phone){
+    toast('Please enter a phone number.');
+    document.getElementById('bk-phone').focus();
+    return;
+  }
+  if(payMethod==='Insurance' && (!insProvider || !insPolicy)){
+    toast('Please enter insurance provider and policy number.');
+    return;
+  }
+  const waiting = state.tokens.filter(t=>t.doctor===doc.name && t.status==='waiting').length;
+  const tokenNo = dept.id.toUpperCase().slice(0,3) + '-' + String(state.tokens.length+1).padStart(3,'0');
+  const token = {
+    id: 't' + Date.now(),
+    tokenNo, dept: dept.name, doctor: doc.name,
+    hospitalId: state.selectedHospital.id, hospitalName: state.selectedHospital.name,
+    patientEmail: state.currentUser.email, patientName: name, patientPhone: phone, patientEmailGiven: email,
+    appointmentDate: date, timeSlot: slot,
+    payMethod, insProvider, insPolicy,
+    bookedAt: new Date().toISOString(),
+    status:'waiting', position: state.tokens.length+1,
+    estWait: waiting * doc.avg
+  };
+  state.tokens.push(token);
+  await saveTokens();
+  state.lastBookedToken = token;
+  addNotification(`Appointment confirmed — Token ${tokenNo} with ${doc.name} on ${date}.`, '🎫');
+  toast('Token ' + tokenNo + ' booked for ' + date + ', ' + slot + '!');
+  goPage('slip');
+}
+
+function viewSlip(id){
+  const t = state.tokens.find(x=>x.id===id);
+  if(!t) return;
+  state.lastBookedToken = t;
+  goPage('slip');
+}
+
+/* ---------- Admin: doctors & wards ---------- */
+function addDoctor(){
+  if(!isStaff()){ toast('Only hospital staff can add doctors.'); return; }
+  const deptId = document.getElementById('ad-dept').value;
+  const dept = currentDepts().find(d=>d.id===deptId);
+  const name = document.getElementById('ad-name').value.trim();
+  const qualification = document.getElementById('ad-qual').value.trim();
+  const experience = document.getElementById('ad-exp').value.trim();
+  const days = document.getElementById('ad-days').value.trim();
+  const timing = document.getElementById('ad-timing').value.trim();
+  const fee = document.getElementById('ad-fee').value.trim();
+  const avg = parseInt(document.getElementById('ad-avg').value) || 10;
+  if(!name || !qualification || !experience || !days || !timing || !fee){
+    toast('Please fill in every doctor field.');
+    return;
+  }
+  const id = 'd' + Date.now();
+  dept.doctors.push({id, name, avg, qualification, experience, days, timing, fee, rating:4.5, available:true, reviews:[]});
+  addNotification(`New doctor added: ${name} (${dept.name}).`, '🩺');
+  toast(name + ' added to ' + dept.name + '.');
+  goPage('admin');
+}
+
+function removeDoctor(deptId, docId){
+  if(!isStaff()){ toast('Only hospital staff can remove doctors.'); return; }
+  const dept = currentDepts().find(d=>d.id===deptId);
+  const doc = dept.doctors.find(d=>d.id===docId);
+  dept.doctors = dept.doctors.filter(d=>d.id!==docId);
+  addNotification(`Doctor removed: ${doc ? doc.name : docId}.`, '🩺');
+  toast('Doctor removed.');
+  goPage('admin');
+}
+
+async function adjustWardBeds(ward, delta){
+  if(!isStaff()){ toast('Only hospital staff can change ward capacity.'); return; }
+  const arr = currentBeds()[ward];
+  if(delta > 0){
+    const types = WARD_BED_TYPES[ward] || ['Standard Bed'];
+    const newId = arr.length + 1;
+    arr.push({ id:newId, type: types[(newId-1) % types.length], occupied:false });
+  } else if(delta < 0 && arr.length > 1){
+    arr.pop();
+  }
+  await saveBeds();
+  addNotification(`${ward} capacity adjusted to ${arr.length} beds.`, '🛏');
+  goPage('admin');
+}
+
+function isStaff(){ return state.currentUser && state.currentUser.role==='staff'; }
+
+/* ---------- Symptom Checker ---------- */
+function toggleSymptom(symptom){
+  const idx = state.selectedSymptoms.indexOf(symptom);
+  if(idx===-1) state.selectedSymptoms.push(symptom);
+  else state.selectedSymptoms.splice(idx,1);
+  goPage('symptomChecker');
+}
+function clearSymptoms(){
+  state.selectedSymptoms = [];
+  goPage('symptomChecker');
+}
+function findDoctorsFor(specialty){
+  state.pendingDoctorSearchTerm = specialty;
+  if(state.selectedHospital){
+    state.doctorSearch = specialty;
+    goPage('doctors');
+  } else if(state.selectedCity){
+    goPage('hospitals');
+  } else {
+    goPage('cities');
+  }
+}
+
+function toggleDoctorAvailability(deptId, docId){
+  if(!isStaff()){ toast('Only hospital staff can change doctor availability.'); return; }
+  const dept = currentDepts().find(d=>d.id===deptId);
+  if(!dept) return;
+  const doc = dept.doctors.find(d=>d.id===docId);
+  if(!doc) return;
+  doc.available = !doc.available;
+  addNotification(`${doc.name} marked ${doc.available ? 'Available' : 'Busy'}.`, '🩺');
+  toast(doc.name + ' is now ' + (doc.available ? 'Available' : 'Busy'));
+  if(!doc.available){
+    const affected = state.tokens.filter(t=>t.doctor===doc.name && t.status==='waiting');
+    affected.forEach(t=>{
+      addNotification(`⚠ Delay alert: ${doc.name} is running busy — your token ${t.tokenNo} may be delayed.`, '⏱');
+    });
+  }
+  goPage(currentPage);
+}
+
+async function cancelToken(id){
+  const idx = state.tokens.findIndex(x=>x.id===id);
+  if(idx===-1) return;
+  const t = state.tokens[idx];
+  state.tokens.splice(idx,1);
+  await saveTokens();
+  addNotification(`Token ${t.tokenNo} was cancelled.`, '❌');
+  toast('Token ' + t.tokenNo + ' cancelled.');
+  goPage('queue');
+}
+
+function startReschedule(id){
+  const panel = document.getElementById('resched-'+id);
+  if(panel) panel.style.display = panel.style.display==='block' ? 'none' : 'block';
+}
+
+async function confirmReschedule(id){
+  const t = state.tokens.find(x=>x.id===id);
+  if(!t) return;
+  const date = document.getElementById('resched-date-'+id).value;
+  const slot = document.getElementById('resched-slot-'+id).value;
+  if(!date){ toast('Please choose a date.'); return; }
+  t.appointmentDate = date;
+  t.timeSlot = slot;
+  await saveTokens();
+  addNotification(`Token ${t.tokenNo} rescheduled to ${date}, ${slot}.`, '🔄');
+  toast('Token ' + t.tokenNo + ' rescheduled.');
+  goPage('queue');
+}
+
+async function advanceToken(id){
+  const t = state.tokens.find(x=>x.id===id);
+  if(t){
+    t.status='done';
+    await saveTokens();
+    addNotification(`Token ${t.tokenNo} consultation marked complete.`, '✅');
+    goPage('queue');
+    toast('Token ' + t.tokenNo + ' marked complete.');
+  }
+}
+
+/* ---------- Beds ---------- */
+async function toggleBed(ward, idx){
+  if(!isStaff()){ toast('Only hospital staff can change bed availability.'); return; }
+  const bed = currentBeds()[ward][idx];
+  bed.occupied = !bed.occupied;
+  if(bed.occupied){
+    bed.patientName = MOCK_PATIENTS[Math.floor(Math.random()*MOCK_PATIENTS.length)];
+    bed.admittedOn = new Date().toISOString();
+    bed.doctor = randomDoctor().name;
+    addNotification(`Bed B-${bed.id} (${ward}) admitted ${bed.patientName}.`, '🛏');
+  } else {
+    addNotification(`Bed B-${bed.id} (${ward}) discharged and is now available.`, '🛏');
+    delete bed.patientName; delete bed.admittedOn; delete bed.doctor;
+  }
+  await saveBeds();
+  goPage('beds');
+}
+
+/* ---------- Reports ---------- */
+function downloadFile(filename, content, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function csvEscape(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }
+
+function downloadReport(type){
+  if(type==='tokens'){
+    let rows = [['Token No','Department','Doctor','Patient','Phone','Appointment Date','Time Slot','Status','Estimated Wait (min)','Booked At']];
+    state.tokens.forEach(t=>rows.push([t.tokenNo,t.dept,t.doctor,t.patientName,t.patientPhone||'',t.appointmentDate||'',t.timeSlot||'',t.status,t.estWait,t.bookedAt]));
+    downloadFile('mediqueue_tokens.csv', rows.map(r=>r.map(csvEscape).join(',')).join('\n'), 'text/csv');
+  } else if(type==='beds'){
+    let rows = [['Ward','Bed No','Type','Status','Patient','Doctor','Admitted On']];
+    Object.keys(currentBeds()).forEach(w=> currentBeds()[w].forEach(b=> rows.push([w, 'B-'+b.id, b.type, b.occupied?'Occupied':'Available', b.patientName||'', b.doctor||'', b.admittedOn||''])));
+    downloadFile('mediqueue_beds.csv', rows.map(r=>r.map(csvEscape).join(',')).join('\n'), 'text/csv');
+  } else if(type==='users'){
+    let rows = [['Name','Email','Phone','Role','Registered At']];
+    state.users.forEach(u=>rows.push([u.name,u.email,u.phone,u.role,u.registeredAt]));
+    downloadFile('mediqueue_users.csv', rows.map(r=>r.map(csvEscape).join(',')).join('\\n'), 'text/csv');
+  } else if(type==='summary'){
+    const text =
+`MEDIQUEUE — HOSPITAL SUMMARY REPORT
+Generated: ${new Date().toLocaleString()}
+
+Registered Users: ${state.users.length}
+Total Tokens Issued: ${state.tokens.length}
+Tokens Waiting: ${state.tokens.filter(t=>t.status==='waiting').length}
+Tokens Completed: ${state.tokens.filter(t=>t.status==='done').length}
+Beds Free: ${bedsFreeCount()} / ${bedsTotalCount()}
+Average Estimated Wait: ${avgWait()} min
+
+--- Departments ---
+${currentDepts().map(d=>`${d.name}: ${state.tokens.filter(t=>t.dept===d.name).length} token(s)`).join('\\n')}
+`;
+    downloadFile('mediqueue_summary.txt', text, 'text/plain');
+  }
+  toast('Report downloaded.');
+}
+
+/* ==================================================================
+   BOOT
+================================================================== */
+(async function boot(){
+  try{
+    await loadState();
+    document.getElementById('stat-users').textContent = state.users.length;
+    document.getElementById('stat-tokens').textContent = state.tokens.length;
+
+    // Wire up auth screen with addEventListener (more robust than inline
+    // onclick attributes, which some browser extensions / policies block)
+    document.getElementById('tab-login').addEventListener('click', ()=>setAuthTab('login'));
+    document.getElementById('tab-signup').addEventListener('click', ()=>setAuthTab('signup'));
+    document.getElementById('login-submit-btn').addEventListener('click', handleLogin);
+    document.getElementById('signup-submit-btn').addEventListener('click', handleSignup);
+    document.getElementById('go-signup-link').addEventListener('click', (e)=>{ e.preventDefault(); setAuthTab('signup'); });
+    document.getElementById('go-login-link').addEventListener('click', (e)=>{ e.preventDefault(); setAuthTab('login'); });
+
+    ['login-email','login-password'].forEach(id=>{
+      document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); handleLogin(); } });
+    });
+    ['su-name','su-email','su-phone','su-password'].forEach(id=>{
+      document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); handleSignup(); } });
+    });
+
+    // Sidebar nav — also rebind via addEventListener as a safety net
+    document.querySelectorAll('.nav-item[data-page]').forEach(btn=>{
+      btn.addEventListener('click', ()=>goPage(btn.dataset.page));
+    });
+
+    // Global click delegation as a fallback net for ALL dynamically
+    // rendered buttons/cards inside page content (in case inline
+    // onclick attributes are blocked in this browser/environment).
+    document.addEventListener('click', function(e){
+      const deptCard = e.target.closest('.dept-card[data-dept]');
+      if(deptCard){ selectDept(deptCard.dataset.dept); return; }
+      const docRow = e.target.closest('.doc-row[data-doc]');
+      if(docRow){ selectDoc(docRow.dataset.doc); return; }
+      const chip = e.target.closest('.filter-chip[data-bedfilter]');
+      if(chip){ state.bedFilter = chip.dataset.bedfilter; goPage('beds'); return; }
+      // close notification panel on outside click
+      const panel = document.getElementById('notif-panel');
+      const bell = document.getElementById('notif-bell');
+      if(panel && panel.classList.contains('open') && !panel.contains(e.target) && !bell.contains(e.target)){
+        panel.classList.remove('open');
+      }
+    });
+    document.addEventListener('change', function(e){
+      if(e.target.id==='bk-date' || e.target.id==='bk-slot'){ updateConfirmSummary(); }
+      if(e.target.id==='bk-pay'){ onPayMethodChange(); }
+      if(e.target.dataset && e.target.dataset.symptom){ toggleSymptom(e.target.dataset.symptom); }
+    });
+    document.addEventListener('input', function(e){
+      if(e.target.id==='bed-search'){
+        state.bedSearch = e.target.value;
+        document.getElementById('page-content').innerHTML = RENDER.beds();
+        const inp = document.getElementById('bed-search');
+        inp.focus();
+        inp.setSelectionRange(inp.value.length, inp.value.length);
+      }
+      if(e.target.id==='doctor-search'){
+        state.doctorSearch = e.target.value;
+        document.getElementById('page-content').innerHTML = RENDER.doctors();
+        const inp = document.getElementById('doctor-search');
+        inp.focus();
+        inp.setSelectionRange(inp.value.length, inp.value.length);
+      }
+      if(e.target.id==='symptom-search'){
+        state.symptomSearch = e.target.value;
+        document.getElementById('page-content').innerHTML = RENDER.symptomChecker();
+        const inp = document.getElementById('symptom-search');
+        inp.focus();
+        inp.setSelectionRange(inp.value.length, inp.value.length);
+      }
+    });
+
+    if(state.currentUser && state.users.find(u=>u.email===state.currentUser.email)){
+      enterApp();
+    }
+    startLiveSimulation();
+  }catch(err){
+    console.error('Boot error:', err);
+    document.body.insertAdjacentHTML('afterbegin', '<div style="max-width:520px;margin:20px auto;padding:24px;font-family:sans-serif;background:#FBE4E7;color:#8a1f2c;border-radius:12px;position:relative;z-index:999;">'
+      + '<b>MediQueue hit an error while starting.</b><br><br>' + (err && err.message ? err.message : err)
+      + '</div>');
+  }
+})();
+</script>
+</body>
+</html>
